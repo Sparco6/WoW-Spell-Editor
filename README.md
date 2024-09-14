@@ -3,7 +3,7 @@ WoW Spell Editor
 
 This is a spell editor designed to be used for WoW versions 3.3.5, 2.4.3, or 1.12.1. It also supports importing and exporting of any patch version DBC to and from SQL with the use of text file bindings found in the `Bindings` directory.
 
-![Spell Editor Image 3.3.5a](https://i.imgur.com/DkpvfCH.png)
+![Spell Editor Image 3.3.5a](https://i.imgur.com/a80Izv2.png)
 
 Downloads can be found in the releases section, please report any issues you find and I will look at them when I get a chance.
 
@@ -68,7 +68,8 @@ You can copy and paste kits and effects/attachments freely. Whenever you paste i
 This feature is in its very early stages. Some values from the visual kit data are not handled in the UI. Other features can be added like displaying other spells using the same kit/effect/attachment or generally being able to search all existing objects.
 
 The full class model is not currently supported. The spell visual class model looks like this:
-![Spell Visual Class Model](https://i.imgur.com/o7mPR9k.png)
+
+![Spell Visual Class Model](https://i.imgur.com/m4bH2xF.png)
 
 ## Spell Visual Map
 

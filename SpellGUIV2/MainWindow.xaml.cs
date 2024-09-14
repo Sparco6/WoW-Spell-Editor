@@ -154,8 +154,12 @@ namespace SpellEditor
         public int GetLanguage() {
             // FIXME(Harry)
             // Disabled returning Locale_langauge until it can at least support multiple client types
-            var locale = LocaleManager.Instance.GetLocale(GetDBAdapter());
-            return locale == -1 ? 0 : locale;
+            // Get a new adapter to avoid lock blocking calling thread
+            using (var adapter = AdapterFactory.Instance.GetAdapter(false))
+            {
+                var locale = LocaleManager.Instance.GetLocale(adapter);
+                return locale == -1 ? 0 : locale;
+            }
             //return (int)Locale_language;
         }
 
@@ -392,33 +396,27 @@ namespace SpellEditor
                 procBoxes.Add(box);
             }
 
-            ApplyAuraName1.Items.Clear();
-            ApplyAuraName2.Items.Clear();
-            ApplyAuraName3.Items.Clear();
-            FilterAuraCombo.Items.Clear();
             string[] spell_aura_effect_names = SafeTryFindResource("spell_aura_effect_names").Split('|');
+            string[] comboEntries = new string[spell_aura_effect_names.Length];
             for (int i = 0; i < spell_aura_effect_names.Length; ++i)
             {
-                var auraName = i + " - " + spell_aura_effect_names[i];
-                ApplyAuraName1.Items.Add(auraName);
-                ApplyAuraName2.Items.Add(auraName);
-                ApplyAuraName3.Items.Add(auraName);
-                FilterAuraCombo.Items.Add(auraName);
+                comboEntries[i] = i + " - " + spell_aura_effect_names[i];
             }
+            ApplyAuraName1.ItemsSource = new List<string>(comboEntries);
+            ApplyAuraName2.ItemsSource = new List<string>(comboEntries);
+            ApplyAuraName3.ItemsSource = new List<string>(comboEntries);
+            FilterAuraCombo.ItemsSource = new List<string>(comboEntries);
 
-            SpellEffect1.Items.Clear();
-            SpellEffect2.Items.Clear();
-            SpellEffect3.Items.Clear();
-            FilterSpellEffectCombo.Items.Clear();
             string[] spell_effect_names = SafeTryFindResource("spell_effect_names").Split('|');
+            comboEntries = new string[spell_effect_names.Length];
             for (int i = 0; i < spell_effect_names.Length; ++i)
             {
-                var effectName = i + " - " + spell_effect_names[i];
-                SpellEffect1.Items.Add(effectName);
-                SpellEffect2.Items.Add(effectName);
-                SpellEffect3.Items.Add(effectName);
-                FilterSpellEffectCombo.Items.Add(effectName);
+                comboEntries[i] = i + " - " + spell_effect_names[i];
             }
+            SpellEffect1.ItemsSource = new List<string>(comboEntries);
+            SpellEffect2.ItemsSource = new List<string>(comboEntries);
+            SpellEffect3.ItemsSource = new List<string>(comboEntries);
+            FilterSpellEffectCombo.ItemsSource = new List<string>(comboEntries);
 
             Mechanic1.Items.Clear();
             Mechanic2.Items.Clear();
@@ -434,23 +432,21 @@ namespace SpellEditor
             if (TargetA1.Items.Count == 0)
             {
                 int number = 0;
+                var comboList = new List<string>();
                 foreach (Targets t in Enum.GetValues(typeof(Targets)))
                 {
-                    string toDisplay = number + " - " + t;
-                    TargetA1.Items.Add(toDisplay);
-                    TargetB1.Items.Add(toDisplay);
-                    TargetA2.Items.Add(toDisplay);
-                    TargetB2.Items.Add(toDisplay);
-                    TargetA3.Items.Add(toDisplay);
-                    TargetB3.Items.Add(toDisplay);
-                    FilterSpellTargetA.Items.Add(toDisplay);
-                    FilterSpellTargetB.Items.Add(toDisplay);
-
-                    //ChainTarget1.Items.Add(toDisplay);
-                    //ChainTarget2.Items.Add(toDisplay);
-                    //ChainTarget3.Items.Add(toDisplay);
+                    comboList.Add(number + " - " + t);
                     ++number;
                 }
+
+                TargetA1.ItemsSource = new List<string>(comboList);
+                TargetB1.ItemsSource = new List<string>(comboList);
+                TargetA2.ItemsSource = new List<string>(comboList);
+                TargetB2.ItemsSource = new List<string>(comboList);
+                TargetA3.ItemsSource = new List<string>(comboList);
+                TargetB3.ItemsSource = new List<string>(comboList);
+                FilterSpellTargetA.ItemsSource = new List<string>(comboList);
+                FilterSpellTargetB.ItemsSource = new List<string>(comboList);
             }
 
             InterruptFlagsGrid.Children.Clear();
@@ -612,7 +608,12 @@ namespace SpellEditor
                 foreach (ThreadSafeCheckBox cb in SpellMask32.Items) { cb.Checked += HandspellFamilyClassMask_Checked; cb.Unchecked += HandspellFamilyClassMask_Checked; }
                 foreach (ThreadSafeCheckBox cb in SpellMask33.Items) { cb.Checked += HandspellFamilyClassMask_Checked; cb.Unchecked += HandspellFamilyClassMask_Checked; }
 
-                loadAllData();
+                LoadAllData();
+
+                FilterSpellEffectCombo.SelectionChanged += FilterSpellEffectCombo_SelectionChanged;
+                FilterAuraCombo.SelectionChanged += FilterAuraCombo_SelectionChanged;
+                FilterSpellTargetA.SelectionChanged += FilterSpellTargetA_SelectionChanged;
+                FilterSpellTargetB.SelectionChanged += FilterSpellTargetB_SelectionChanged;
             }
 
             catch (Exception ex)
@@ -680,21 +681,45 @@ namespace SpellEditor
         #endregion
 
         #region InitialiseMemberVariables
-        private void LoadAllRequiredDbcs()
+        private void LoadAllRequiredDbcs(Action<string> setMessage)
         {
             // Load required DBC's. First the ones with dependencies and inject them into the manager
             var manager = DBCManager.GetInstance();
-            manager.LoadRequiredDbcs();
+            var tasks = manager.LoadRequiredDbcs();
+            var lang = GetLanguage();
+
             if (WoWVersionManager.IsWotlkOrGreaterSelected)
             {
-                manager.InjectLoadedDbc("AreaGroup", new AreaGroup(((AreaTable)manager.FindDbcForBinding("AreaTable")).Lookups));
-                manager.InjectLoadedDbc("SpellDifficulty", new SpellDifficulty(adapter, GetLanguage()));
+                tasks.Add(Task.Run(() =>
+                    manager.InjectLoadedDbc("SpellDifficulty", new SpellDifficulty(adapter, lang))));
             }
-            manager.InjectLoadedDbc("SpellIcon", new SpellIconDBC(this, adapter));
-            spellFamilyClassMaskParser = new SpellFamilyClassMaskParser(this);
+            
+            tasks.Add(Task.Run(() =>
+                manager.InjectLoadedDbc("SpellIcon", new SpellIconDBC(this, adapter))));
+
+            var incompleteCount = tasks.Where(t => !t.IsCompleted).Count();
+            while (incompleteCount > 0)
+            {
+                setMessage?.Invoke("Remaining DBCs: " + incompleteCount);
+                Thread.Sleep(50);
+                incompleteCount = tasks.Where(t => !t.IsCompleted).Count();
+            }
+
+            setMessage?.Invoke("Loading dependent DBCs...");
+
+            if (WoWVersionManager.IsWotlkOrGreaterSelected)
+            {
+                // Has a dependency on the earlier tasks completing
+                manager.InjectLoadedDbc("AreaGroup", new AreaGroup(((AreaTable)manager.FindDbcForBinding("AreaTable")).Lookups));
+            }
+
+            Task.Run(() =>
+            {
+                spellFamilyClassMaskParser = new SpellFamilyClassMaskParser(GetDBAdapter());
+            });
         }
 
-        private async void loadAllData()
+        private async void LoadAllData()
         {
             await GetConfig();
             if (!Config.IsInit)
@@ -704,48 +729,101 @@ namespace SpellEditor
             }
             var controller = await this.ShowProgressAsync(SafeTryFindResource("PleaseWait"), SafeTryFindResource("PleaseWait_2"));
             controller.SetCancelable(false);
+
+            var taskList = new List<Task>();
+            bool shouldReturn = false;
+
+            controller.SetMessage("Loading SQL connection...");
             await Task.Run(() =>
             {
                 try
                 {
                     adapter = AdapterFactory.Instance.GetAdapter(true);
-                    adapter.CreateAllTablesFromBindings();
                 }
                 catch (Exception e)
                 {
-                    controller.CloseAsync();
                     Logger.Error("ERROR: " + e.Message + "\n" + e.InnerException?.Message + "\n" + e);
-                    Dispatcher.InvokeAsync(() => this.ShowMessageAsync(SafeTryFindResource("ERROR"),
-                       $"{SafeTryFindResource("Input_MySQL_Error")}\n{e.Message + "\n" + e.InnerException?.Message}"));
+                    Dispatcher.InvokeAsync(() =>
+                    {
+                        controller.CloseAsync();
+                        this.ShowMessageAsync(SafeTryFindResource("ERROR"),
+                           $"{SafeTryFindResource("Input_MySQL_Error")}\n{e.Message + "\n" + e.InnerException?.Message}");
+                        shouldReturn = true;
+                    });
                 }
             });
 
-            try
-            {
-                LoadAllRequiredDbcs();
-            }
-            catch (MySqlException e)
-            {
-                await controller.CloseAsync();
-                await this.ShowMessageAsync(SafeTryFindResource("ERROR"),
-                    $"{SafeTryFindResource("LoadDBCFromBinding_Error_1")}: {e.Message}\n{e.StackTrace}\n{e.InnerException}");
+            if (shouldReturn)
                 return;
-            }
-            catch (SQLiteException e)
+
+            controller.SetMessage("Loading DBC data...");
+            // Creating all MySQL tables from bindings
+            //  We actually don't need to block the UI on this completing
+            var createTask = Task.Run(() =>
             {
-                await controller.CloseAsync();
-                await this.ShowMessageAsync(SafeTryFindResource("ERROR"),
-                    $"{SafeTryFindResource("LoadDBCFromBinding_Error_1")}: {e.Message}\n{e.StackTrace}\n{e.InnerException}");
-                return;
-            }
-            catch (Exception e)
+                try
+                {
+                    using (var innerAdapter = AdapterFactory.Instance.GetAdapter(false))
+                        innerAdapter.CreateAllTablesFromBindings();
+                }
+                catch (Exception e)
+                {
+                    Logger.Error("ERROR: " + e.Message + "\n" + e.InnerException?.Message + "\n" + e);
+                    Dispatcher.InvokeAsync(() =>
+                    {
+                        controller?.CloseAsync();
+                        this.ShowMessageAsync(SafeTryFindResource("ERROR"),
+                           $"{SafeTryFindResource("Input_MySQL_Error")}\n{e.Message + "\n" + e.InnerException?.Message}");
+                    });
+                }
+            });
+
+            // Load DBC data
+            await Task.Run(() =>
             {
-                await controller.CloseAsync();
-                await this.ShowMessageAsync(SafeTryFindResource("ERROR"),
-                    $"{SafeTryFindResource("LoadDBCFromBinding_Error_1")}: {e.Message}\n{e.StackTrace}\n{e.InnerException}");
+                try
+                {
+                    LoadAllRequiredDbcs(controller.SetMessage);
+                }
+                catch (MySqlException e)
+                {
+                    Dispatcher.InvokeAsync(() =>
+                    {
+                        controller.CloseAsync();
+                        this.ShowMessageAsync(SafeTryFindResource("ERROR"),
+                            $"{SafeTryFindResource("LoadDBCFromBinding_Error_1")}: {e.Message}\n{e.StackTrace}\n{e.InnerException}");
+                    });
+                    shouldReturn = true;
+                }
+                catch (SQLiteException e)
+                {
+                    Dispatcher.InvokeAsync(() =>
+                    {
+                        controller.CloseAsync();
+                        this.ShowMessageAsync(SafeTryFindResource("ERROR"),
+                            $"{SafeTryFindResource("LoadDBCFromBinding_Error_1")}: {e.Message}\n{e.StackTrace}\n{e.InnerException}");
+                    });
+                    shouldReturn = true;
+                }
+                catch (Exception e)
+                {
+                    Dispatcher.InvokeAsync(() =>
+                    {
+                        controller.CloseAsync();
+                        this.ShowMessageAsync(SafeTryFindResource("ERROR"),
+                            $"{SafeTryFindResource("LoadDBCFromBinding_Error_1")}: {e.Message}\n{e.StackTrace}\n{e.InnerException}");
+                    });
+                    shouldReturn = true;
+                }
+            });
+
+            if (shouldReturn)
                 return;
-            }
-            
+
+            controller.SetMessage("Loading DBC UI data...");
+            DBCManager.GetInstance().LoadGraphicUserInterface();
+
+            controller.SetMessage("Loading content UI data...");
             try
             {
                 // Initialise select spell list
@@ -816,6 +894,11 @@ namespace SpellEditor
                 return;
             }
 
+            /*if (!createTask.IsCompleted)
+            {
+                controller.SetMessage("Waiting for table creation to finish...");
+                await createTask;
+            }*/
             await controller.CloseAsync();
             PopulateSelectSpell();
         }
@@ -910,11 +993,11 @@ namespace SpellEditor
 
         private void _KeyUp(object sender, KeyEventArgs e)
         {
-            if (sender == FilterSpellNames && e.Key == Key.Back)
-            {
-                _KeyDown(sender, new KeyEventArgs(Keyboard.PrimaryDevice, Keyboard.PrimaryDevice.ActiveSource, 0, Key.Space));
-            }
-            else if (sender == FilterIcons && e.Key == Key.Back)
+            if (e.Key == Key.Back && (
+                sender == FilterSpellNames || 
+                sender == FilterIcons ||
+                sender == Attributes1Search ||
+                sender == Attributes2Search))
             {
                 _KeyDown(sender, new KeyEventArgs(Keyboard.PrimaryDevice, Keyboard.PrimaryDevice.ActiveSource, 0, Key.Space));
             }
@@ -1021,6 +1104,25 @@ namespace SpellEditor
                     image.Visibility = name.Contains(input) ? Visibility.Visible : Visibility.Collapsed;
                 }
             }
+            else if (sender == Attributes1Search || sender == Attributes2Search)
+            {
+                var input = sender == Attributes1Search ? 
+                    Attributes1Search.Text.ToLower() : 
+                    Attributes2Search.Text.ToLower();
+                var controls = sender == Attributes1Search ? 
+                    new StackPanel[] { Attributes1, Attributes2, Attributes3, Attributes4 } :
+                    new StackPanel[] { Attributes5, Attributes6, Attributes7, Attributes8 };
+
+                for (int i = 0; i < controls.Length; ++i)
+                {
+                    foreach (ThreadSafeCheckBox box in controls[i].Children)
+                    {
+                        box.Visibility = box.Content.ToString().Length <= 0 || box.Content.ToString().ToLower().Contains(input) ?
+                            Visibility.Visible :
+                            Visibility.Collapsed;
+                    }
+                }
+            }
         }
         #endregion
 
@@ -1029,7 +1131,7 @@ namespace SpellEditor
         {
             if (adapter == null)
             {
-                loadAllData();
+                LoadAllData();
                 return;
             }
             
@@ -1048,6 +1150,7 @@ namespace SpellEditor
                     foreach (var binding in BindingManager.GetInstance().GetAllBindings())
                         adapter.Execute($"drop table `{binding.Name.ToLower()}`");
                     adapter.CreateAllTablesFromBindings();
+                    selectedID = 0;
                     PopulateSelectSpell();
                 }
                 return;
@@ -1517,9 +1620,9 @@ namespace SpellEditor
                         row["EquippedItemSubClassMask"] = Mask;
                     }
 
-                    row["Effect1"] = (uint)SpellEffect1.SelectedIndex;
-                    row["Effect2"] = (uint)SpellEffect2.SelectedIndex;
-                    row["Effect3"] = (uint)SpellEffect3.SelectedIndex;
+                    row["Effect1"] = SpellEffect1.GetNumberPrefixFromText();
+                    row["Effect2"] = SpellEffect2.GetNumberPrefixFromText();
+                    row["Effect3"] = SpellEffect3.GetNumberPrefixFromText();
                     row["EffectDieSides1"] = int.Parse(DieSides1.Text);
                     row["EffectDieSides2"] = int.Parse(DieSides2.Text);
                     row["EffectDieSides3"] = int.Parse(DieSides3.Text);
@@ -1538,9 +1641,9 @@ namespace SpellEditor
                     row["EffectImplicitTargetB1"] = (uint)TargetB1.SelectedIndex;
                     row["EffectImplicitTargetB2"] = (uint)TargetB2.SelectedIndex;
                     row["EffectImplicitTargetB3"] = (uint)TargetB3.SelectedIndex;
-                    row["EffectApplyAuraName1"] = (uint)ApplyAuraName1.SelectedIndex;
-                    row["EffectApplyAuraName2"] = (uint)ApplyAuraName2.SelectedIndex;
-                    row["EffectApplyAuraName3"] = (uint)ApplyAuraName3.SelectedIndex;
+                    row["EffectApplyAuraName1"] = ApplyAuraName1.GetNumberPrefixFromText();
+                    row["EffectApplyAuraName2"] = ApplyAuraName2.GetNumberPrefixFromText();
+                    row["EffectApplyAuraName3"] = ApplyAuraName3.GetNumberPrefixFromText();
                     row["EffectAmplitude1"] = uint.Parse(Amplitude1.Text);
                     row["EffectAmplitude2"] = uint.Parse(Amplitude2.Text);
                     row["EffectAmplitude3"] = uint.Parse(Amplitude3.Text);
@@ -1763,6 +1866,16 @@ namespace SpellEditor
 
         private void PopulateSelectSpell()
         {
+            if (!SelectSpell.IsInitialised())
+            {
+                SelectSpell.SetAdapter(GetDBAdapter())
+                    .SetLanguage(GetLanguage())
+                    .Initialise();
+            }
+            if (!SelectSpell.HasAdapter())
+            {
+                SelectSpell.SetAdapter(GetDBAdapter());
+            }
             SelectSpell.PopulateSelectSpell();
             FocusLanguage();
         }
@@ -2382,9 +2495,9 @@ namespace SpellEditor
                     }
                 }
                 updateProgress("Updating effects 1-3...");
-                SpellEffect1.ThreadSafeIndex = int.Parse(row["Effect1"].ToString());
-                SpellEffect2.ThreadSafeIndex = int.Parse(row["Effect2"].ToString());
-                SpellEffect3.ThreadSafeIndex = int.Parse(row["Effect3"].ToString());
+                SpellEffect1.SetTextFromIndex(uint.Parse(row["Effect1"].ToString()));
+                SpellEffect2.SetTextFromIndex(uint.Parse(row["Effect2"].ToString()));
+                SpellEffect3.SetTextFromIndex(uint.Parse(row["Effect3"].ToString()));
                 DieSides1.ThreadSafeText = row["EffectDieSides1"].ToString();
                 DieSides2.ThreadSafeText = row["EffectDieSides2"].ToString();
                 DieSides3.ThreadSafeText = row["EffectDieSides3"].ToString();
@@ -2413,9 +2526,9 @@ namespace SpellEditor
                 RadiusIndex3.ThreadSafeIndex = loadRadiuses.UpdateRadiusIndexes(IDs[2]);
 
                 updateProgress("Updating effect 1-3 data...");
-                ApplyAuraName1.ThreadSafeIndex = int.Parse(row["EffectApplyAuraName1"].ToString());
-                ApplyAuraName2.ThreadSafeIndex = int.Parse(row["EffectApplyAuraName2"].ToString());
-                ApplyAuraName3.ThreadSafeIndex = int.Parse(row["EffectApplyAuraName3"].ToString());
+                ApplyAuraName1.SetTextFromIndex(uint.Parse(row["EffectApplyAuraName1"].ToString()));
+                ApplyAuraName2.SetTextFromIndex(uint.Parse(row["EffectApplyAuraName2"].ToString()));
+                ApplyAuraName3.SetTextFromIndex(uint.Parse(row["EffectApplyAuraName3"].ToString()));
                 Amplitude1.ThreadSafeText = row["EffectAmplitude1"].ToString();
                 Amplitude2.ThreadSafeText = row["EffectAmplitude2"].ToString();
                 Amplitude3.ThreadSafeText = row["EffectAmplitude3"].ToString();
@@ -4117,6 +4230,7 @@ namespace SpellEditor
             {
                 return;
             }
+            
             var box = sender as ComboBox;
             var selected = box.SelectedItem?.ToString() ?? "0 ";
             var id = int.Parse(selected.Substring(0, selected.IndexOf(' ')));

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -16,7 +15,7 @@ namespace SpellEditor.Sources.Controls.Common
      * 
      * Mainly ripped from https://stackoverflow.com/questions/2001842/dynamic-filter-of-wpf-combobox-based-on-text-input
      */
-    public class FilteredComboBox : ComboBox
+    public class FilteredComboBox : ThreadSafeComboBox
     {
         private static readonly TimeSpan RefreshFilterDelay = TimeSpan.FromMilliseconds(1000);
 
@@ -72,6 +71,45 @@ namespace SpellEditor.Sources.Controls.Common
             SelectionChanged += (_, __) => shouldTriggerSelectedItemChanged = true;
 
             SelectionEffectivelyChanged += (_, o) => EffectivelySelectedItem = o;
+        }
+
+        public uint GetNumberPrefixFromText(string text = null)
+        {
+            text = text != null ? text.TrimStart() : Text.TrimStart();
+            var numStr = "";
+            for (int i = 0; i < text.Length; ++i)
+            {
+                if (char.IsDigit(text[i]))
+                {
+                    numStr += text[i];
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (uint.TryParse(numStr, out var num))
+            {
+                return num;
+            }
+            return 0u;
+        }
+
+        public void SetTextFromIndex(uint index)
+        {
+            foreach (var item in Items)
+            {
+                var itemText = item.ToString();
+                var num = GetNumberPrefixFromText(itemText);
+                if (num == index)
+                {
+                    ThreadSafeText = itemText;
+                    ClearFilter();
+                    return;
+                }
+            }
+            ThreadSafeIndex = 0;
+            ClearFilter();
         }
 
         protected override void OnPreviewKeyDown(KeyEventArgs e)
