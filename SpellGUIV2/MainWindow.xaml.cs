@@ -722,25 +722,27 @@ namespace SpellEditor
 
         private void LogBookWindowButtonClick(object sender, RoutedEventArgs e)
         {
-            if (_LogBookWindow != null)
+            if (_LogBookWindow != null && _LogBookWindow.IsLoaded)
             {
                 _LogBookWindow.Visibility = Visibility.Visible;
-                _LogBookWindow.Show();
+                _LogBookWindow.Activate();
                 return;
             }
             var window = new LogBookWindow(UpdateSelectionFromLogBook);
+            window.Closed += (_, __) => _LogBookWindow = null;
             window.Show();
             _LogBookWindow = window;
         }
 
         private void UpdateLogBookEntry(StackPanel panel)
         {
-            if (_LogBookWindow == null)
+            if (_LogBookWindow == null || !_LogBookWindow.IsLoaded)
             {
                 _LogBookWindow = new LogBookWindow(UpdateSelectionFromLogBook)
                 {
                     Visibility = Visibility.Hidden
                 };
+                _LogBookWindow.Closed += (_, __) => _LogBookWindow = null;
                 _LogBookWindow.Show();
                 _LogBookWindow.UpdateLayout();
             }
@@ -899,6 +901,10 @@ namespace SpellEditor
                 Thread.Sleep(50);
                 incompleteCount = tasks.Where(t => !t.IsCompleted).Count();
             }
+
+            // Propagate the original DBC/binding failure instead of continuing with a null
+            // dependency and reporting a misleading NullReferenceException.
+            Task.WaitAll(tasks.Cast<Task>().ToArray());
 
             setMessage?.Invoke("Loading dependent DBCs...");
 
@@ -2393,9 +2399,15 @@ namespace SpellEditor
                 return;
             var text = SpellStringParser.ParseString(sender.Text, spell, this);
             if (type == 0)
+            {
                 spellDescGenFields[locale].ThreadSafeText = text;
+                spellDescGenFields[locale].ToolTip = "Raw formula text:\n" + sender.Text + "\n\nRendered preview:\n" + text;
+            }
             else if (type == 1)
+            {
                 spellTooltipGenFields[locale].ThreadSafeText = text;
+                spellTooltipGenFields[locale].ToolTip = "Raw formula text:\n" + sender.Text + "\n\nRendered preview:\n" + text;
+            }
         }
         #endregion
 

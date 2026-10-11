@@ -233,6 +233,9 @@ namespace SpellEditor.Sources.SpellStringTools
                         throw new FormulaException($"spell {spellId} is missing a variable after it");
                 }
 
+                if (SpellFormulaVariables.IsDynamic(name))
+                    throw new FormulaException($"${name} requires runtime player context");
+
                 if (!SpellFormulaVariables.TryResolve(name, _record, out var value))
                     throw new FormulaException($"'{name}' is not a formula variable");
                 return value;

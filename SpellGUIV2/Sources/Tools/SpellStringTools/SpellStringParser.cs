@@ -14,10 +14,12 @@ namespace SpellEditor.Sources.SpellStringTools
         // Holds a $ inside an error message so the token pass below does not eat it
         private const string DOLLAR_PLACEHOLDER = "\u0001";
 
-        public static readonly string MODIFY_FORMULA_REGEX      = @"\$(\/|\*|\-|)\d+\;\d*\w+";                      // $/10;17057s1 | $/10;s1
+        public static readonly string MODIFY_FORMULA_REGEX      = @"\$(\/|\*|\+|\-|)\d+\;\d*\w+";                 // $/10;17057s1 | $*5;s1
         public static readonly string FORMULA_REGEX             = @"\$\{.*?}|\$\w*";                                // ${1 + $s1} | $s1
         public static readonly string EXPRESSION_REGEX          = @"\$\{([^}]*)\}(?:\.([1-9]))?";                   // ${$abs($m1)} | ${$m1/3}.2
-        public static readonly string LOCALE_STR_REGEX          = @"\$l(\w+\:)+\w+\;";                              // $lone_thing:two_things:three_things:four_things;
+        public static readonly string LOCALE_STR_REGEX          = @"\$l([^:;]+):([^;]+);";                          // $lpoint:points;
+        public static readonly string LOCALE_LITERAL_REGEX      = @"\$l([A-Za-z][A-Za-z'\-]*)(?=\s|[.,!?]|$)";     // $lForce -> Force
+        public static readonly string GENDER_STR_REGEX          = @"\$g([^:;]+):([^;]+);";                          // $ghis:her;
         public static readonly string CONDITIONAL_FORMULA_REGEX = @"\$\?(.+?)\[(.*?)\]\[(.*?)\]";                   // $?(s70937)[true condition][false $70907d]
         public static readonly string FORMULA_TAG_REGEX         = @"\$\<\w+\>";                                     // $<mult>
         public static readonly string ALL_FORMULA_REGEX         = $"{MODIFY_FORMULA_REGEX}|{FORMULA_REGEX}";
@@ -35,6 +37,8 @@ namespace SpellEditor.Sources.SpellStringTools
         public static readonly Regex ReferenceRegex = new Regex(REFERENCE_REGEX, RegexOptions.Compiled);
         public static readonly Regex NumberRegex = new Regex(NUMBER_REGEX, RegexOptions.Compiled);
         private static readonly Regex LocaleStrRegex = new Regex(LOCALE_STR_REGEX, RegexOptions.Compiled);
+        private static readonly Regex LocaleLiteralRegex = new Regex(LOCALE_LITERAL_REGEX, RegexOptions.Compiled);
+        private static readonly Regex GenderStrRegex = new Regex(GENDER_STR_REGEX, RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex ConditionalFormulaRegex = new Regex(CONDITIONAL_FORMULA_REGEX, RegexOptions.Compiled);
         private static readonly Regex FormulaTagRegex = new Regex(FORMULA_TAG_REGEX, RegexOptions.Compiled);
         private static readonly Regex ExpressionRegex = new Regex(EXPRESSION_REGEX, RegexOptions.Compiled);
@@ -54,24 +58,23 @@ namespace SpellEditor.Sources.SpellStringTools
             if (string.IsNullOrEmpty(str) || str.IndexOf('$') < 0)
                 return str;
 
-            // Replace locale strings first
-            foreach (var localeMatch in LocaleStrRegex.Matches(str))
-            {
-                var localeFormula = localeMatch.ToString();
-                // The correct string to use appears to depend on the localisation.
-                // For the purposes of the spell editor, always display the first string.
-                var useWord = localeFormula.Substring(2, localeFormula.IndexOf(':') - 2);
-                str = str.Replace(localeFormula, useWord);
-            }
+            // Gender depends on the live unit represented by the tooltip.
+            str = GenderStrRegex.Replace(str, match =>
+                "<DYNAMIC-GENDER:" + match.Groups[1].Value + "|" + match.Groups[2].Value + ">");
+            str = LocaleLiteralRegex.Replace(str, match => match.Groups[1].Value);
+            // Keep plural directives out of the general $symbol pass until numeric values resolve.
+            str = LocaleStrRegex.Replace(str, match => match.Value.Replace("$", DOLLAR_PLACEHOLDER));
             foreach (Match conditionMatch in ConditionalFormulaRegex.Matches(str))
             {
-                // Always take the true condition value because we don't have a player context
-                str = str.Replace(conditionMatch.ToString(), conditionMatch.Groups[2].Value);
+                // Conditions depend on learned spells/auras or other live state. Preserve both
+                // branches instead of inventing a result for an editor without player context.
+                str = str.Replace(conditionMatch.ToString(), "<DYNAMIC: " +
+                    conditionMatch.ToString().Replace("$", DOLLAR_PLACEHOLDER) + ">");
             }
             foreach (var match in FormulaTagRegex.Matches(str))
             {
-                // Strip formula tags
-                str = str.Replace(match.ToString(), "0");
+                // SpellDescriptionVariables.dbc expansion is not currently available here.
+                str = str.Replace(match.ToString(), "<UNRESOLVED:" + match.ToString().Replace("$", DOLLAR_PLACEHOLDER) + ">");
             }
             str = ParseExpressions(str, spell, mainWindow);
             // Parse formulas and resolve
@@ -82,6 +85,18 @@ namespace SpellEditor.Sources.SpellStringTools
                     Logger.Trace(formula + "\t----\t" + "Processing");
                 str = str.Replace(formula, ParseFormula(formula, spell, mainWindow));
             }
+            // English TBC plural forms use the most recently rendered numeric value. If the
+            // value is still dynamic, retain both choices instead of silently choosing one.
+            str = str.Replace(DOLLAR_PLACEHOLDER + "l", "$l").Replace(DOLLAR_PLACEHOLDER + "L", "$L");
+            str = LocaleStrRegex.Replace(str, match =>
+            {
+                var prefix = str.Substring(0, match.Index);
+                var number = Regex.Match(prefix, @"(-?\d+(?:\.\d+)?)\s*$");
+                if (number.Success && double.TryParse(number.Groups[1].Value, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var value))
+                    return Math.Abs(value) == 1 ? match.Groups[1].Value : match.Groups[2].Value;
+                return "<DYNAMIC-PLURAL:" + match.Groups[1].Value + "|" + match.Groups[2].Value + ">";
+            });
             return str.Replace(DOLLAR_PLACEHOLDER, "$");
         }
 
@@ -106,9 +121,9 @@ namespace SpellEditor.Sources.SpellStringTools
                 }
                 else
                 {
-                    // A formula the game cannot work out renders as a bare $, so say what is
-                    // wrong rather than show a number that will never appear in a tooltip.
-                    replacement = "<ERROR: " + error.Replace("$", DOLLAR_PLACEHOLDER) + ">";
+                    // Keep dynamic and invalid expressions explicit instead of manufacturing zero.
+                    var kind = error.IndexOf("requires runtime player context", StringComparison.Ordinal) >= 0 ? "DYNAMIC" : "ERROR";
+                    replacement = "<" + kind + ": " + match.Value.Replace("$", DOLLAR_PLACEHOLDER) + " — " + error.Replace("$", DOLLAR_PLACEHOLDER) + ">";
                     if (Logger.IsTraceEnabled)
                         Logger.Trace($"{match.Value}\t----\t{error}");
                 }

@@ -27,7 +27,7 @@ namespace SpellEditor.Sources.SpellStringTools
         private static readonly Regex LinkedPeriodRegex = new Regex("\\$([0-9]+)t([1-3])", RegexOptions.Compiled);
         private static readonly Regex LinkedDurationRegex = new Regex("\\$([0-9]+)d", RegexOptions.Compiled);
         private static readonly Regex LinkedEffectRegex = new Regex("\\$([0-9]+)s([1-3])", RegexOptions.Compiled);
-        private static readonly Regex LinkedSpellRegex = new Regex("\\$\\d+", RegexOptions.Compiled);
+        private static readonly Regex LinkedValueRegex = new Regex("\\$(\\d+)(bc[1-3]|[A-Za-z]+[1-3]?)", RegexOptions.Compiled);
 
         private static readonly Dictionary<string, Regex> TokenRegexCache = new Dictionary<string, Regex>();
 
@@ -641,7 +641,7 @@ namespace SpellEditor.Sources.SpellStringTools
 
         private static TOKEN_TO_PARSER knownUnhandledTokenParser = new TOKEN_TO_PARSER()
         {
-            // These need a live player to resolve, so the editor shows zero
+            // These need a live player to resolve. Keep that visible; zero would be false data.
             /*
              * $STR $AGI $STA $INT $SPI    Effective stat, buffs included
              * $str $agi $sta $int $spi    Base stat
@@ -681,7 +681,7 @@ namespace SpellEditor.Sources.SpellStringTools
             {
                 foreach (var token in Tokens(knownUnhandledTokenParser.TOKEN))
                 {
-                    str = ReplaceToken(str, token, "0");
+                    str = ReplaceToken(str, token, "<DYNAMIC:" + token + ">");
                 }
                 return str;
             }
@@ -718,27 +718,20 @@ namespace SpellEditor.Sources.SpellStringTools
             if (string.IsNullOrEmpty(rawString) || rawString.IndexOf('$') < 0)
                 return rawString;
 
-            // If a token starts with $ and a number, it references that as a spell id
-            var match = LinkedSpellRegex.Match(rawString);
-            if (match.Success)
+            // Resolve each cross-spell token independently. The old implementation switched the
+            // whole remaining string to the first referenced spell and could corrupt mixed text.
+            rawString = LinkedValueRegex.Replace(rawString, match =>
             {
-                if (!uint.TryParse(match.Value.Substring(1), out uint otherId))
-                {
-                    Logger.Info("Failed to parse other spell id: " + rawString);
-                    return rawString;
-                }
+                if (!uint.TryParse(match.Groups[1].Value, out uint otherId))
+                    return match.Value;
                 var otherRecord = SpellDBC.GetRecordById(otherId, mainWindow);
                 if (otherRecord == null)
-                    return rawString;
-                int offset = match.Index + match.Value.Length;
-                bool hasPrefix = rawString.StartsWith("$");
-                rawString = rawString.Substring(match.Index + match.Value.Length);
-                if (hasPrefix)
-                    rawString = "$" + rawString;
+                    return "<UNRESOLVED:" + match.Value + ">";
+                var localToken = "$" + match.Groups[2].Value;
                 foreach (TOKEN_TO_PARSER parser in TOKEN_PARSERS)
-                    rawString = parser.tokenFunc(rawString, otherRecord, mainWindow);
-                return rawString;
-            }
+                    localToken = parser.tokenFunc(localToken, otherRecord, mainWindow);
+                return localToken == "$" + match.Groups[2].Value ? "<UNRESOLVED:" + match.Value + ">" : localToken;
+            });
             foreach (TOKEN_TO_PARSER parser in TOKEN_PARSERS)
                 rawString = parser.tokenFunc(rawString, record, mainWindow);
             return rawString;

@@ -158,6 +158,15 @@ namespace SpellEditor
             //var selectedType = WoWVersionManager.GetInstance().LookupVersion(selectedItem);
 
             Config.WoWVersion = selectedItem;
+            var version = WoWVersionManager.GetInstance().LookupVersion(selectedItem);
+            if (version != null)
+            {
+                var directoryName = version.Identity == 112 ? "Bindings_112_vanilla" :
+                    version.Identity == 243 ? "Bindings_243_tbc" : "Bindings_335_wotlk";
+                var packagedBindings = Path.Combine(Environment.CurrentDirectory, directoryName);
+                if (Directory.Exists(packagedBindings))
+                    Config.BindingsDirectory = packagedBindings;
+            }
         }
 
         private void DatabaseButton_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -184,13 +193,39 @@ namespace SpellEditor
 
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
             row = 0;
 
-            var dbFileNameLabel = new Label { Content = "SQLite Database File Name: " };
-            var dbFileNameText = new TextBox { Text = Config.SQLiteFilename, MinWidth = 200 };
+            var dbFileNameLabel = new Label { Content = "SQLite Database File: " };
+            var dbFileNameText = new TextBox { Text = Config.SQLiteFilename, MinWidth = 350 };
+            var resolvedPathLabel = new Label { Content = "Resolved path: " + Sources.Database.SQLite.ResolveDatabasePath(Config.SQLiteFilename) };
+            var browseButton = new Button { Content = "Browse...", Foreground = Brushes.Black, MinWidth = 100 };
+            browseButton.Click += (_, __) =>
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "SQLite database (*.db;*.sqlite;*.sqlite3)|*.db;*.sqlite;*.sqlite3|All files (*.*)|*.*",
+                    CheckFileExists = true,
+                    Title = "Select the existing Spell Editor database"
+                };
+                var resolved = Sources.Database.SQLite.ResolveDatabasePath(dbFileNameText.Text);
+                if (File.Exists(resolved))
+                {
+                    dialog.InitialDirectory = Path.GetDirectoryName(resolved);
+                    dialog.FileName = Path.GetFileName(resolved);
+                }
+                if (dialog.ShowDialog(this) == true)
+                {
+                    dbFileNameText.Text = dialog.FileName;
+                    resolvedPathLabel.Content = "Resolved path: " + dialog.FileName;
+                }
+            };
+            dbFileNameText.TextChanged += (_, __) => resolvedPathLabel.Content =
+                "Resolved path: " + Sources.Database.SQLite.ResolveDatabasePath(dbFileNameText.Text);
             var confirmBtn = new SQLiteConfirmButton(dbFileNameText)
             {
                 Content = "Save Changes",
@@ -200,6 +235,8 @@ namespace SpellEditor
 
             dbFileNameLabel.Margin = new Thickness(10, 5, 10, 5);
             dbFileNameText.Margin = new Thickness(10, 5, 10, 5);
+            resolvedPathLabel.Margin = new Thickness(10, 0, 10, 5);
+            browseButton.Margin = new Thickness(10, 5, 10, 5);
             confirmBtn.Margin = new Thickness(10, 10, 10, 5);
             confirmBtn.MinHeight = 40;
 
@@ -207,11 +244,18 @@ namespace SpellEditor
             Grid.SetColumn(dbFileNameLabel, 0);
             Grid.SetRow(dbFileNameText, row++);
             Grid.SetColumn(dbFileNameText, 1);
+            Grid.SetRow(browseButton, row - 1);
+            Grid.SetColumn(browseButton, 2);
+            Grid.SetRow(resolvedPathLabel, row++);
+            Grid.SetColumn(resolvedPathLabel, 1);
+            Grid.SetColumnSpan(resolvedPathLabel, 2);
             Grid.SetRow(confirmBtn, row++);
             Grid.SetColumn(confirmBtn, 1);
 
             grid.Children.Add(dbFileNameLabel);
             grid.Children.Add(dbFileNameText);
+            grid.Children.Add(resolvedPathLabel);
+            grid.Children.Add(browseButton);
             grid.Children.Add(confirmBtn);
 
             ConfigGrid.Children.Add(grid); 

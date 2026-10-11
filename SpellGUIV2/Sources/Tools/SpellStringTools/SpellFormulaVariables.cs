@@ -13,8 +13,10 @@ namespace SpellEditor.Sources.SpellStringTools
         public delegate double VariableResolver(DataRow record);
 
         private static readonly Dictionary<string, VariableResolver> Resolvers = Build();
+        private static readonly HashSet<string> DynamicVariables = BuildDynamicVariables();
 
         public static bool IsKnown(string name) => name != null && Resolvers.ContainsKey(name);
+        public static bool IsDynamic(string name) => name != null && DynamicVariables.Contains(name);
 
         public static bool TryResolve(string name, DataRow record, out double value)
         {
@@ -56,22 +58,20 @@ namespace SpellEditor.Sources.SpellStringTools
             AddPair(map, "v", "V", record => Column(record, "MaximumTargetLevel"));
             AddPair(map, "i", "I", record => Column(record, "MaximumAffectedTargets"));
 
-            // Everything below needs a live player, so the editor can only show zero.
-            AddZero(map, "STR", "AGI", "STA", "INT", "SPI", "str", "agi", "sta", "int", "spi");
-            AddZero(map, "ap", "AP", "rap", "RAP");
-            AddZero(map, "mwb", "MWB", "owb", "OWB", "rwb", "RWB");
-            AddZero(map, "mw", "MW", "ow", "OW", "rw", "RW");
-            AddZero(map, "ar", "AR");
-            AddZero(map, "mws", "MWS", "ows", "OWS", "rws", "RWS");
-            AddZero(map, "pl", "PL");
-            AddZero(map, "hnd", "HND");
-            AddZero(map, "sp", "SP");
-            AddZero(map, "sph", "spfi", "spn", "spfr", "sps", "spa", "SPH", "SPFI", "SPN", "SPFR", "SPS", "SPA");
-            AddZero(map, "bh", "BH");
-            AddZero(map, "ph", "pfi", "pn", "pfr", "ps", "pa", "PH", "PFI", "PN", "PFR", "PS", "PA");
-            AddZero(map, "pbh", "pBH", "pbhd", "pBHD");
-
             return map;
+        }
+
+        private static HashSet<string> BuildDynamicVariables()
+        {
+            return new HashSet<string>(new[] {
+                "STR", "AGI", "STA", "INT", "SPI", "str", "agi", "sta", "int", "spi",
+                "ap", "AP", "rap", "RAP", "mwb", "MWB", "owb", "OWB", "rwb", "RWB",
+                "mw", "MW", "ow", "OW", "rw", "RW", "ar", "AR", "mws", "MWS",
+                "ows", "OWS", "rws", "RWS", "pl", "PL", "hnd", "HND", "sp", "SP",
+                "sph", "spfi", "spn", "spfr", "sps", "spa", "SPH", "SPFI", "SPN",
+                "SPFR", "SPS", "SPA", "bh", "BH", "ph", "pfi", "pn", "pfr", "ps",
+                "pa", "PH", "PFI", "PN", "PFR", "PS", "PA", "pbh", "pBH", "pbhd", "pBHD"
+            }, StringComparer.Ordinal);
         }
 
         private static void Add(Dictionary<string, VariableResolver> map, string name, VariableResolver resolver)
@@ -83,12 +83,6 @@ namespace SpellEditor.Sources.SpellStringTools
         {
             map[lower] = resolver;
             map[upper] = resolver;
-        }
-
-        private static void AddZero(Dictionary<string, VariableResolver> map, params string[] names)
-        {
-            foreach (var name in names)
-                map[name] = record => 0;
         }
 
         private static double Column(DataRow record, string column)

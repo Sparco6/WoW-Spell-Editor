@@ -3,6 +3,8 @@ using SpellEditor.Sources.VersionControl;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Documents;
 
@@ -51,6 +53,7 @@ namespace SpellEditor.Sources.DBC
          */
         public List<Task<bool>> LoadRequiredDbcs()
         {
+            ValidateRequiredFiles();
             var tasks = new List<Task<bool>>
             {
                 ForceLoadDbc<AreaTable>("AreaTable"),
@@ -97,6 +100,38 @@ namespace SpellEditor.Sources.DBC
                 }
             }
             return tasks;
+        }
+
+        private static void ValidateRequiredFiles()
+        {
+            var required = new List<string>
+            {
+                "AreaTable", "SpellCategory", "SpellDispelType", "SpellMechanic",
+                "SpellFocusObject", "SpellCastTimes", "SpellDuration", "SpellRange",
+                "SpellRadius", "ItemClass", "CreatureType", "SpellShapeshiftForm"
+            };
+            if (WoWVersionManager.IsTbcOrGreaterSelected)
+                required.Add("TotemCategory");
+            if (WoWVersionManager.IsWotlkOrGreaterSelected)
+            {
+                required.Add("SpellRuneCost");
+                required.Add("SpellDescriptionVariables");
+            }
+
+            var dbcDirectory = Config.Config.DbcDirectory;
+            var bindingsDirectory = Config.Config.BindingsDirectory;
+            var missingDbcs = required.Where(name => !File.Exists(Path.Combine(dbcDirectory, name + ".dbc"))).ToArray();
+            var missingBindings = required.Where(name => !File.Exists(Path.Combine(bindingsDirectory, name + ".txt"))).ToArray();
+            if (missingDbcs.Length == 0 && missingBindings.Length == 0)
+                return;
+
+            var message = $"The selected {WoWVersionManager.GetInstance().SelectedVersion().Version} data set is incomplete.";
+            if (missingDbcs.Length > 0)
+                message += $"\nDBC directory: {dbcDirectory}\nMissing DBC files: {string.Join(", ", missingDbcs)}";
+            if (missingBindings.Length > 0)
+                message += $"\nBindings directory: {bindingsDirectory}\nMissing bindings: {string.Join(", ", missingBindings)}";
+            message += "\nOpen Config, select matching version/bindings and a complete extracted DBFilesClient directory.";
+            throw new FileNotFoundException(message);
         }
 
         private Task<bool> ForceLoadDbc<DBCType>(string name) where DBCType : AbstractDBC, new()
