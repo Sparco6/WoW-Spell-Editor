@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,6 +23,7 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
     {
         // store effects UI stuff in arrays for easy access
         private readonly UIntTextBox[] _familyMaskControls; // [3]
+        private readonly TextBox[] _familyMaskHexControls; // [3]
 
         public List<CheckBox> _maskCheckBoxes = new List<CheckBox>(); // 32 x 3
 
@@ -57,12 +59,19 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
             InitializeComponent();
 
             _familyMaskControls = new UIntTextBox[3] { SpellMask1, SpellMask2, SpellMask3 }; // must be after InitializeComponent()
+            _familyMaskHexControls = new TextBox[3] { SpellMaskHex1, SpellMaskHex2, SpellMaskHex3 };
 
             // 1.12 only has 2 masks in base, 1 in effects through item_type
             if (mask_count < 2)
+            {
                 _familyMaskControls[1].IsEnabled = false;
+                _familyMaskHexControls[1].IsEnabled = false;
+            }
             if (mask_count < 3)
+            {
                 _familyMaskControls[2].IsEnabled = false;
+                _familyMaskHexControls[2].IsEnabled = false;
+            }
 
             if (!WoWVersionManager.IsWotlkOrGreaterSelected)
             {
@@ -97,6 +106,7 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
                 _familyMaskControls[category].ValueChanged -= SpellMask_text_ValueChanged;
                 _familyMaskControls[category].Value = family;
                 _familyMaskControls[category].ValueChanged += SpellMask_text_ValueChanged;
+                SetHexControl(category, family);
 
                 // set checkboxes
                 for (int i = 0; i < 32; i++)
@@ -152,7 +162,12 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
                     ArrayList al = _mainwindow.spellFamilyClassMaskParser.GetSpellList(_familyId, (uint)category, (uint)i);
                     _family_spell_counts[index] = al == null ? 0 : al.Count;
 
-                    string _tooltipStr = $"Spell Class Mask {category}: 0x{mask:X8}, (bit {i})\n";
+                    var familyName = SpellFamilyNames.GetFamilyName((int)_familyId) ?? "Unknown family";
+                    var definitionName = SpellFamilyNames.GetFamilyFlagName((int)_familyId, index + 1);
+                    string _tooltipStr = $"{familyName} ({_familyId}), mask word {category}: 0x{mask:X8} (bit {i})\n";
+                    _tooltipStr += string.IsNullOrEmpty(definitionName)
+                        ? "Definition: unknown; the raw bit remains editable.\n"
+                        : $"Definition: {definitionName}\n";
                     _tooltipStr += $"Users : ({_family_spell_counts[index]})\n";
                     if (al != null)
                     {
@@ -251,19 +266,19 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
             _familyMaskControls[group].ValueChanged -= SpellMask_text_ValueChanged;
             _familyMaskControls[group].Value = _active_families_values[group];
             _familyMaskControls[group].ValueChanged += SpellMask_text_ValueChanged;
+            SetHexControl(group, _active_families_values[group]);
 
             UpdateSpellFamilyClassMaskListbox();
         }
 
         private void FamiliesSearch_TextChanged(object sender, TextChangedEventArgs e)
         {
-            string search_text = FamiliesSearch.Text.ToLower();
+            string search_text = FamiliesSearch.Text.ToLowerInvariant().Trim();
 
-            int id = 0;
-            if (int.TryParse(search_text, out int value))
-            {
-                id = value;
-            }
+            uint numericMask = 0;
+            var numericSearch = search_text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                ? uint.TryParse(search_text.Substring(2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out numericMask)
+                : uint.TryParse(search_text, NumberStyles.Integer, CultureInfo.InvariantCulture, out numericMask);
 
             // filter checkboxes from search text
             foreach (var box in _maskCheckBoxes)
@@ -272,10 +287,10 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
 
                 var (group, bit) = ((int g, int bit))box.Tag;
                 // search bitmask if user searched a number
-                if (id > 0)
+                if (numericSearch && numericMask > 0)
                 {
                     uint mask = 1u << bit;
-                    if ((id & mask) != 0)
+                    if ((numericMask & mask) != 0)
                     {
                         border.Visibility = Visibility.Visible;
                         continue;
@@ -283,7 +298,7 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
                 }
 
                 var label = GetBitLabel(box);
-                if (label.Length <= 0 || label.ToLower().Contains(search_text))
+                if (label.Length <= 0 || label.ToLowerInvariant().Contains(search_text))
                 {
                     // family name matches
                     border.Visibility = Visibility.Visible;
@@ -292,7 +307,7 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
 
                 // search linked spells. Only bother doing it if user input more than 3 characters. (eg "fire" works, but not "fir"
                 bool found = false;
-                if (label.Length > 3)
+                if (search_text.Length > 3)
                 {
                     var spells_list = _mainwindow.spellFamilyClassMaskParser.GetSpellList(_familyId, (uint)group, (uint)bit);
                     if (spells_list != null && spells_list.Count != 0)
@@ -300,7 +315,7 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
                         foreach (uint spellId in spells_list)
                         {
                             string spell_name = _mainwindow.GetSpellNameById(spellId);
-                            if (spell_name != null && spell_name.ToLower().Contains(search_text))
+                            if (spell_name != null && spell_name.ToLowerInvariant().Contains(search_text))
                             {
                                 border.Visibility = Visibility.Visible;
                                 found = true;
@@ -330,10 +345,40 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
 
             // immediatly update main value ?
             _active_families_values[id] = value;
+            SetHexControl((int)id, value);
 
             // reload all from _families
             Load(_active_families_values);
 
+            UpdateSpellFamilyClassMaskListbox();
+        }
+
+        private void SetHexControl(int index, uint value)
+        {
+            _familyMaskHexControls[index].TextChanged -= SpellMaskHex_TextChanged;
+            _familyMaskHexControls[index].Text = $"0x{value:X8}";
+            _familyMaskHexControls[index].TextChanged += SpellMaskHex_TextChanged;
+        }
+
+        private void SpellMaskHex_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_familyMaskHexControls == null)
+                return;
+            var index = Array.IndexOf(_familyMaskHexControls, sender);
+            if (index < 0 || index >= _maskCount)
+                return;
+
+            var text = ((TextBox)sender).Text.Trim();
+            if (text.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                text = text.Substring(2);
+            if (!uint.TryParse(text, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var value))
+                return;
+
+            _active_families_values[index] = value;
+            _familyMaskControls[index].ValueChanged -= SpellMask_text_ValueChanged;
+            _familyMaskControls[index].Value = value;
+            _familyMaskControls[index].ValueChanged += SpellMask_text_ValueChanged;
+            Load(_active_families_values);
             UpdateSpellFamilyClassMaskListbox();
         }
 
