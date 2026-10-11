@@ -228,8 +228,10 @@
     <system:String x:Key="CopySpellRecord4">새로운 주문 ID를 입력하십시오.</system:String>
     <system:String x:Key="CopySpellRecord5">오류: 입력된 주문 ID가 정수가 아닙니다.</system:String>
     <system:String x:Key="CopySpellRecord6">오류: 해당 주문 ID는 이미 사용 중입니다.</system:String>
-    <system:String x:Key="CopySpellRecord7">아무것도 없는 상태에서 새 주문을 생성하는 기능은 현재 구현되지 않았습니다. 기존 주문을 복사해 주십시오.</system:String>
-    <system:String x:Key="CopySpellRecord8">ID {0}번으로 새 레코드가 성공적으로 생성되었습니다.</system:String>
+    <system:String x:Key="CopySpellRecord7">사용 가능한 첫 번째 ID 사용</system:String>
+    <system:String x:Key="CopySpellRecord8">복사 수:</system:String>
+    <system:String x:Key="CopySpellRecord9">오류: 복사 수는 양의 정수여야 합니다.</system:String>
+    <system:String x:Key="CopySpellRecord10">ID {1}부터 {0}개의 새 레코드를 만들었습니다.</system:String>
     <system:String x:Key="DeleteSpellRecord1">삭제할 주문 ID를 입력하십시오.</system:String>
     <system:String x:Key="DeleteSpellRecord2">오류: 입력된 주문 ID가 정수가 아닙니다.</system:String>
     <system:String x:Key="DeleteSpellRecord3">레코드를 성공적으로 삭제했습니다.</system:String>

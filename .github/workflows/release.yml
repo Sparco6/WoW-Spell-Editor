@@ -87,6 +87,8 @@ jobs:
         run: |
           $required = @(
             'staging\SpellEditor.exe',
+            'staging\Bindings_112_vanilla',
+            'staging\Bindings_243_tbc',
             'staging\Bindings_335_wotlk',
             'staging\Languages',
             'staging\Interface\Icons'

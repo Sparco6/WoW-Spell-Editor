@@ -4,7 +4,7 @@ namespace SpellEditor.Sources.Emulator.CMangos
 {
     /// <summary>
     /// See SpellMgr::LoadSpellThreats. Same idea as the 3.3.5 table of this name but with an
-    /// effect mask on the end, and VMangos dropped the attack power part.
+    /// attack power contribution; VMangos dropped the attack power part.
     /// </summary>
     public class SpellThreatTable : CMangosTable
     {
@@ -29,7 +29,6 @@ namespace SpellEditor.Sources.Emulator.CMangos
             yield return new WorldColumn { Name = "Threat" };
             yield return new WorldColumn { Name = "multiplier", Kind = ColumnKind.Float, DefaultValue = "1" };
             yield return new WorldColumn { Name = "ap_bonus", Kind = ColumnKind.Float };
-            yield return new WorldColumn { Name = "InverseEffectMask", Flags = WorldEnums.EffectIndexMask };
         }
 
         public override string FallbackHeader => "Threat";
@@ -42,7 +41,7 @@ namespace SpellEditor.Sources.Emulator.CMangos
 
         public override string[] FallbackLabels => new[]
         {
-            "Spell", "Flat threat", "Threat multiplier", "Attack power share", "Effects the flat bonus skips"
+            "Spell", "Flat threat", "Threat multiplier", "Attack power share"
         };
 
         public override string[] FallbackTooltips => new[]
@@ -50,8 +49,7 @@ namespace SpellEditor.Sources.Emulator.CMangos
             "Spell the threat applies to. Write the row against rank 1 and the core applies it to every rank.",
             "Threat added on top of the damage or healing, split between everything the spell hits.",
             "Multiplies the threat the damage or healing would have made on its own. 1 leaves it alone.",
-            "Extra threat taken from a share of the caster attack power.",
-            "Effects that do not get the flat bonus, so a spell that both damages and applies an aura can put the threat on one of them."
+            "Extra threat taken from a share of the caster attack power."
         };
     }
 }

@@ -3,12 +3,13 @@ using SpellEditor.Sources.Controls.Common;
 using SpellEditor.Sources.Controls.SpellSelectList;
 using SpellEditor.Sources.Database;
 using SpellEditor.Sources.Locale;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -203,13 +204,14 @@ namespace SpellEditor.Sources.Controls
             // Copy spell in DB
             using (var result = _Adapter.Query($"SELECT * FROM `spell` WHERE `ID` = '{copyFrom}' LIMIT 1"))
             {
+                if (result.Rows.Count != 1)
+                    throw new InvalidOperationException($"Source spell {copyFrom} does not exist.");
                 var row = result.Rows[0];
-                var str = new StringBuilder();
-                str.Append($"INSERT INTO `spell` VALUES ('{copyTo}'");
-                for (int i = 1; i < row.Table.Columns.Count; ++i)
-                    str.Append($", \"{row[i]}\"");
-                str.Append(")");
-                _Adapter.Execute(str.ToString());
+                var columns = row.Table.Columns.Cast<DataColumn>().Select(column => $"`{column.ColumnName}`");
+                var values = row.ItemArray.Select((value, index) => index == 0
+                    ? copyTo.ToString(CultureInfo.InvariantCulture)
+                    : "'" + _Adapter.EscapeString(Convert.ToString(value, CultureInfo.InvariantCulture)) + "'");
+                _Adapter.Execute($"INSERT INTO `spell` ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)})");
             }
             // Merge result with spell list
             using (var result = _Adapter.Query($"SELECT `id`,`SpellName{_Language - 1}`,`SpellIconID`,`SpellRank{_Language - 1}` FROM `spell` WHERE `ID` = '{copyTo}' LIMIT 1"))
@@ -220,6 +222,33 @@ namespace SpellEditor.Sources.Controls
                 if (result.Rows.Count > 0)
                     InsertSpellEntry(result.Rows[0]);
             }
+        }
+
+        public bool HasSpell(uint spellId) => _Table.Select($"id = {spellId}").Length == 1;
+
+        public List<uint> GetFirstAvailableSpellIds(uint startId, uint amount)
+        {
+            if (amount == 0)
+                return new List<uint>();
+            if (startId == 0)
+                startId = 1;
+
+            var occupied = new HashSet<uint>();
+            using (var rows = _Adapter.Query($"SELECT `ID` FROM `spell` WHERE `ID` >= {startId} ORDER BY `ID`"))
+            {
+                foreach (DataRow row in rows.Rows)
+                    occupied.Add(Convert.ToUInt32(row[0], CultureInfo.InvariantCulture));
+            }
+
+            var result = new List<uint>();
+            for (var candidate = startId; result.Count < amount; candidate++)
+            {
+                if (!occupied.Contains(candidate))
+                    result.Add(candidate);
+                if (candidate == uint.MaxValue && result.Count < amount)
+                    throw new InvalidOperationException("There are not enough spell IDs available in the UInt32 range.");
+            }
+            return result;
         }
 
         // Splices one entry into the existing item source, rebuilding every entry for a single

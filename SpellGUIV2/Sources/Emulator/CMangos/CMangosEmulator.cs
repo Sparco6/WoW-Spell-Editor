@@ -1,5 +1,7 @@
 namespace SpellEditor.Sources.Emulator.CMangos
 {
+    using SpellEditor.Sources.Emulator.Tables;
+
     /// <summary>
     /// Shared base for the three CMaNGOS branches. None of the 3.3.5 default tables survive here,
     /// the names and the columns both differ, so ConfigureTables does not call base and builds the
@@ -17,9 +19,9 @@ namespace SpellEditor.Sources.Emulator.CMangos
 
         protected override void ConfigureTables(WorldTableSet tables)
         {
+            tables.Add(new SpellBonusDataTable(this));
             tables.Add(new SpellProcEventTable(this));
             tables.Add(new SpellThreatTable(this));
-            tables.Add(new SpellGroupSpellTable(this));
             tables.Add(new SpellElixirTable(this));
             tables.Add(new SpellLearnSpellTable(this));
             tables.Add(new SpellPetAurasTable(this));

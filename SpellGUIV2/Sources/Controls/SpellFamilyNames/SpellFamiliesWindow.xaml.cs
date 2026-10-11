@@ -164,6 +164,8 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
 
                     var familyName = SpellFamilyNames.GetFamilyName((int)_familyId) ?? "Unknown family";
                     var definitionName = SpellFamilyNames.GetFamilyFlagName((int)_familyId, index + 1);
+                    if (WoWVersionManager.GetInstance().SelectedVersion().Identity == 243 && _family_spell_counts[index] == 0)
+                        definitionName = null;
                     string _tooltipStr = $"{familyName} ({_familyId}), mask word {category}: 0x{mask:X8} (bit {i})\n";
                     _tooltipStr += string.IsNullOrEmpty(definitionName)
                         ? "Definition: unknown; the raw bit remains editable.\n"
@@ -204,6 +206,8 @@ namespace SpellEditor.Sources.Controls.SpellFamilyNames
             int index = (32 * group) + bit;
 
             string name = SpellFamilyNames.GetFamilyFlagName((int)_familyId, index + 1);
+            if (WoWVersionManager.GetInstance().SelectedVersion().Identity == 243 && _family_spell_counts[index] == 0)
+                name = null;
             _family_has_definitions_cache[index] = !string.IsNullOrEmpty(name);
 
             if (!_family_has_definitions_cache[index])

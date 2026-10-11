@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [master, codex/tbc-243-complete]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore SpellGUIV2.sln
+
+      - name: Build
+        run: dotnet build SpellGUIV2.sln -c Release --no-restore
+
+      - name: Publish Windows x64
+        run: dotnet publish SpellGUIV2/SpellEditor.csproj -c Release -r win-x64 --self-contained true --no-restore -o staging
+
+      - name: Verify expansion resources
+        shell: pwsh
+        run: |
+          $required = @(
+            'staging\SpellEditor.exe',
+            'staging\Bindings_112_vanilla\Spell.txt',
+            'staging\Bindings_243_tbc\Spell.txt',
+            'staging\Bindings_335_wotlk\Spell.txt',
+            'staging\Languages\enUS.xaml'
+          )
+          $missing = $required | Where-Object { -not (Test-Path -LiteralPath $_) }
+          if ($missing) { throw "Missing published resources:`n" + ($missing -join "`n") }
+
+      - name: Upload Windows x64 application
+        uses: actions/upload-artifact@v7
+        with:
+          name: wow-spell-editor-win-x64
+          path: staging
+          retention-days: 14

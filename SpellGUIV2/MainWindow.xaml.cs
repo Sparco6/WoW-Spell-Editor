@@ -1486,6 +1486,75 @@ namespace SpellEditor
         #endregion
 
         #region ButtonClicks (and load spell god-function)
+        private async Task<(bool Success, uint SourceId, List<uint> NewIds)> ShowCopySpellDialog()
+        {
+            var dialog = new CustomDialog();
+            var view = new CopySpellDialog();
+            if (selectedID > 0)
+                view.OldIdInput.Text = selectedID.ToString(CultureInfo.InvariantCulture);
+            dialog.Content = view;
+
+            await this.ShowMetroDialogAsync(dialog);
+            var completion = new TaskCompletionSource<(bool, uint, List<uint>)>();
+            view.OkButton.Click += async (_, __) =>
+            {
+                if (!uint.TryParse(view.OldIdInput.Text, out var sourceId) || !SelectSpell.HasSpell(sourceId))
+                {
+                    HandleErrorMessage(SafeTryFindResource("CopySpellRecord3"));
+                    return;
+                }
+                if (!uint.TryParse(view.AmountInput.Text, out var amount) || amount == 0 || amount > int.MaxValue)
+                {
+                    HandleErrorMessage(SafeTryFindResource("CopySpellRecord9"));
+                    return;
+                }
+
+                var useFirstAvailable = view.FirstAvailableBox.IsChecked == true;
+                if (!uint.TryParse(view.NewIdInput.Text, out var startId))
+                {
+                    if (!useFirstAvailable)
+                    {
+                        HandleErrorMessage(SafeTryFindResource("CopySpellRecord5"));
+                        return;
+                    }
+                    startId = 1;
+                }
+
+                List<uint> newIds;
+                if (useFirstAvailable)
+                {
+                    newIds = SelectSpell.GetFirstAvailableSpellIds(startId, amount);
+                }
+                else
+                {
+                    var lastId = (ulong)startId + amount - 1;
+                    if (lastId > uint.MaxValue)
+                    {
+                        HandleErrorMessage(SafeTryFindResource("CopySpellRecord5"));
+                        return;
+                    }
+                    using (var conflicts = adapter.Query($"SELECT COUNT(*) FROM `spell` WHERE `ID` BETWEEN {startId} AND {lastId}"))
+                    {
+                        if (Convert.ToUInt32(conflicts.Rows[0][0], CultureInfo.InvariantCulture) > 0)
+                        {
+                            HandleErrorMessage(SafeTryFindResource("CopySpellRecord6"));
+                            return;
+                        }
+                    }
+                    newIds = Enumerable.Range(0, (int)amount).Select(offset => startId + (uint)offset).ToList();
+                }
+
+                await this.HideMetroDialogAsync(dialog);
+                completion.SetResult((true, sourceId, newIds));
+            };
+            view.CancelButton.Click += async (_, __) =>
+            {
+                await this.HideMetroDialogAsync(dialog);
+                completion.SetResult((false, 0, new List<uint>()));
+            };
+            return await completion.Task;
+        }
+
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
             if (adapter == null)
@@ -1517,59 +1586,12 @@ namespace SpellEditor
 
             if (sender == InsertANewRecord)
             {
-                MetroDialogSettings settings = new MetroDialogSettings
-                {
-                    AffirmativeButtonText = SafeTryFindResource("Yes"),
-                    NegativeButtonText = SafeTryFindResource("No")
-                };
-
-
-                MessageDialogStyle style = MessageDialogStyle.AffirmativeAndNegative;
-                MessageDialogResult copySpell = await this.ShowMessageAsync(SafeTryFindResource("SpellEditor"), SafeTryFindResource("CopySpellRecord1"), style, settings);
-
-                uint oldIDIndex = uint.MaxValue;
-
-                if (copySpell == MessageDialogResult.Affirmative)
-                {
-                    string inputCopySpell = await this.ShowInputAsync(SafeTryFindResource("SpellEditor"), SafeTryFindResource("CopySpellRecord2"));
-                    if (inputCopySpell == null) { return; }
-
-                    if (!uint.TryParse(inputCopySpell, out var oldID))
-                    {
-                        HandleErrorMessage(SafeTryFindResource("CopySpellRecord3"));
-                        return;
-                    }
-                    oldIDIndex = oldID;
-                }
-
-                string inputNewRecord = await this.ShowInputAsync(SafeTryFindResource("SpellEditor"), SafeTryFindResource("CopySpellRecord4"));
-                if (inputNewRecord == null) { return; }
-
-                if (!uint.TryParse(inputNewRecord, out var newID))
-                {
-                    HandleErrorMessage(SafeTryFindResource("CopySpellRecord5"));
+                var result = await ShowCopySpellDialog();
+                if (!result.Success)
                     return;
-                }
-
-                if (uint.Parse(adapter.Query($"SELECT COUNT(*) FROM `spell` WHERE `ID` = '{newID}'").Rows[0][0].ToString()) > 0)
-                {
-                    HandleErrorMessage(SafeTryFindResource("CopySpellRecord6"));
-                    return;
-                }
-
-                if (oldIDIndex != uint.MaxValue)
-                {
-                    // Copy old spell to new spell
-                    SelectSpell.AddNewSpell(oldIDIndex, newID);
-                }
-                else
-                {
-                    // Create new spell
-                    HandleErrorMessage(SafeTryFindResource("CopySpellRecord7"));
-                    return;
-                }
-
-                ShowFlyoutMessage(string.Format(SafeTryFindResource("CopySpellRecord8"), inputNewRecord));
+                foreach (var newId in result.NewIds)
+                    SelectSpell.AddNewSpell(result.SourceId, newId);
+                ShowFlyoutMessage(string.Format(SafeTryFindResource("CopySpellRecord10"), result.NewIds.Count, result.NewIds[0]));
                 return;
             }
 
@@ -3883,15 +3905,24 @@ namespace SpellEditor
                 controller.NextLoadAttachmentId = attachId.Value;
             }
             _currentVisualController = controller;
-            // FIXME(Harry): Some of these can probably be loaded in earlier versions
-            if (WoWVersionManager.IsWotlkOrGreaterSelected)
+            if (WoWVersionManager.IsTbcOrGreaterSelected)
             {
                 UpdateSpellVisualKitList(controller?.VisualKits, selectedKit);
                 UpdatePasteability(controller != null);
                 UpdateSpellVisualProperties(controller != null ? controller.VisualId : 0);
-                UpdateSpellVisualMotionEditor(controller != null ? controller.VisualId : 0);
                 UpdateSpellMissileMotionEditor(controller);
-                UpdateSpellMotionEditor(controller != null ? controller.MissileMotion : 0);
+                if (WoWVersionManager.IsWotlkOrGreaterSelected)
+                {
+                    UpdateSpellVisualMotionEditor(controller != null ? controller.VisualId : 0);
+                    UpdateSpellMotionEditor(controller != null ? controller.MissileMotion : 0);
+                }
+                else
+                {
+                    // SpellMissile, SpellMissileMotion, model attachments and the six offset
+                    // columns are not part of the TBC 2.4.3 DBC graph.
+                    UpdateSpellVisualMotionEditor(0);
+                    UpdateSpellMotionEditor(0);
+                }
             }
             else
             {
@@ -4031,7 +4062,7 @@ namespace SpellEditor
                 // Add new spellvisualkit
                 var copyRow = kitResults.Rows[0];
                 copyRow[0] = newKitId.ToString();
-                adapter.Execute($"INSERT INTO spellvisualkit VALUES ({ string.Join(", ", copyRow.ItemArray) })");
+                InsertVisualRow("spellvisualkit", copyRow);
 
                 // Update existing spell visual to point to new kit
                 if (visualId > 0)
@@ -4059,7 +4090,7 @@ namespace SpellEditor
                         copyParent[_key] = 0;
                     }
                     copyParent[key] = newKitId;
-                    adapter.Execute($"INSERT INTO spellvisual VALUES ({ string.Join(", ", copyParent.ItemArray) })");
+                    InsertVisualRow("spellvisual", copyParent);
                     SpellVisual1.ThreadSafeText = newVisualId.ToString();
                     visualId = newVisualId;
                     Button_Click(SaveSpellChanges, null);
@@ -4144,8 +4175,7 @@ namespace SpellEditor
                 var newEffectId = uint.Parse(adapter.Query("SELECT max(id) FROM spellvisualeffectname").Rows[0][0].ToString()) + 1;
                 var copyRow = effectResults.Rows[0];
                 copyRow[0] = newEffectId.ToString();
-                var escapedItems = copyRow.ItemArray.Select(item => "'" + adapter.EscapeString(item.ToString()) + "'");
-                adapter.Execute($"INSERT INTO spellvisualeffectname VALUES ({ string.Join(", ", escapedItems) })");
+                InsertVisualRow("spellvisualeffectname", copyRow);
                 // Update kit to point to new effect if no attachment
                 if (!effectEntry.IsAttachment)
                 {
@@ -4159,8 +4189,7 @@ namespace SpellEditor
                 {
                     copyAttachRow["ParentSpellVisualKitId"] = parentKitId;
                     copyAttachRow["SpellVisualEffectNameId"] = newEffectId;
-                    escapedItems = copyAttachRow.ItemArray.Select(item => "\"" + item + "\"");
-                    adapter.Execute($"INSERT INTO spellvisualkitmodelattach VALUES ({ string.Join(", ", escapedItems) })");
+                    InsertVisualRow("spellvisualkitmodelattach", copyAttachRow);
                 }
                 _currentVisualController = null;
                 UpdateSpellVisualTab(visualId, effectEntry.ParentKitId);
@@ -4572,13 +4601,14 @@ namespace SpellEditor
             var spellSelected = selectedID > 0;
             if (visualId > 0)
             {
-                using (var results = adapter.Query("SELECT HasMissile, MissileModel, MissilePathType, " +
+                var columns = "HasMissile, MissileModel, MissilePathType, " +
                     "MissileDestinationAttachment, MissileSound, AnimEventSoundId, " +
                     "MissileAttachment, MissileFollowGroundHeight, MissileFollowDropSpeed, " +
-                    "MissileFollowApproach, MissileFollowGroundFlags, MissileMotion, " +
-                    "MissileCastOffsetX, MissileCastOffsetY, MissileCastOffsetZ, " +
-                    "MissileImpactOffsetX, MissileImpactOffsetY, MissileImpactOffsetZ " +
-                    "FROM spellvisual WHERE ID = " + visualId))
+                    "MissileFollowApproach, MissileFollowGroundFlags, MissileMotion";
+                if (WoWVersionManager.IsWotlkOrGreaterSelected)
+                    columns += ", MissileCastOffsetX, MissileCastOffsetY, MissileCastOffsetZ, " +
+                        "MissileImpactOffsetX, MissileImpactOffsetY, MissileImpactOffsetZ";
+                using (var results = adapter.Query("SELECT " + columns + " FROM spellvisual WHERE ID = " + visualId))
                 {
                     if (results.Rows.Count > 0)
                     {
@@ -4598,12 +4628,13 @@ namespace SpellEditor
             VisualMissileFollowApproachTxt.Text = entry != null ? entry["MissileFollowApproach"].ToString() : string.Empty;
             VisualMissileFollowGroundFlagsTxt.Text = entry != null ? entry["MissileFollowGroundFlags"].ToString() : string.Empty;
             VisualMissileMotionTxt.Text = entry != null ? entry["MissileMotion"].ToString() : string.Empty;
-            VisualMissileCastOffsetXTxt.Text = entry != null ? entry["MissileCastOffsetX"].ToString() : string.Empty;
-            VisualMissileCastOffsetYTxt.Text = entry != null ? entry["MissileCastOffsetY"].ToString() : string.Empty;
-            VisualMissileCastOffsetZTxt.Text = entry != null ? entry["MissileCastOffsetZ"].ToString() : string.Empty;
-            VisualMissileImpactOffsetXTxt.Text = entry != null ? entry["MissileImpactOffsetX"].ToString() : string.Empty;
-            VisualMissileImpactOffsetYTxt.Text = entry != null ? entry["MissileImpactOffsetY"].ToString() : string.Empty;
-            VisualMissileImpactOffsetZTxt.Text = entry != null ? entry["MissileImpactOffsetZ"].ToString() : string.Empty;
+            var hasOffsets = entry != null && WoWVersionManager.IsWotlkOrGreaterSelected;
+            VisualMissileCastOffsetXTxt.Text = hasOffsets ? entry["MissileCastOffsetX"].ToString() : string.Empty;
+            VisualMissileCastOffsetYTxt.Text = hasOffsets ? entry["MissileCastOffsetY"].ToString() : string.Empty;
+            VisualMissileCastOffsetZTxt.Text = hasOffsets ? entry["MissileCastOffsetZ"].ToString() : string.Empty;
+            VisualMissileImpactOffsetXTxt.Text = hasOffsets ? entry["MissileImpactOffsetX"].ToString() : string.Empty;
+            VisualMissileImpactOffsetYTxt.Text = hasOffsets ? entry["MissileImpactOffsetY"].ToString() : string.Empty;
+            VisualMissileImpactOffsetZTxt.Text = hasOffsets ? entry["MissileImpactOffsetZ"].ToString() : string.Empty;
             VisualHasMissileTxt.IsEnabled = entry != null && spellSelected;
             VisualMissileModelTxt.IsEnabled = entry != null && spellSelected;
             VisualMissilePathTypeTxt.IsEnabled = entry != null && spellSelected;
@@ -4616,12 +4647,12 @@ namespace SpellEditor
             VisualMissileFollowApproachTxt.IsEnabled = entry != null && spellSelected;
             VisualMissileFollowGroundFlagsTxt.IsEnabled = entry != null && spellSelected;
             VisualMissileMotionTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileCastOffsetXTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileCastOffsetYTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileCastOffsetZTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileImpactOffsetXTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileImpactOffsetYTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileImpactOffsetZTxt.IsEnabled = entry != null && spellSelected;
+            VisualMissileCastOffsetXTxt.IsEnabled = hasOffsets && spellSelected;
+            VisualMissileCastOffsetYTxt.IsEnabled = hasOffsets && spellSelected;
+            VisualMissileCastOffsetZTxt.IsEnabled = hasOffsets && spellSelected;
+            VisualMissileImpactOffsetXTxt.IsEnabled = hasOffsets && spellSelected;
+            VisualMissileImpactOffsetYTxt.IsEnabled = hasOffsets && spellSelected;
+            VisualMissileImpactOffsetZTxt.IsEnabled = hasOffsets && spellSelected;
             VisualNew.IsEnabled = entry == null && spellSelected;
             VisualSave.IsEnabled = entry != null && spellSelected;
         }
@@ -4693,15 +4724,16 @@ namespace SpellEditor
             VisualMissileEffectFilePathTxt.Text = missileEntry != null ? missileEntry[2].ToString() : string.Empty;
             VisualMissileEffectAreaEffectSizeTxt.Text = missileEntry != null ? missileEntry[3].ToString() : string.Empty;
             VisualMissileEffectScaleTxt.Text = missileEntry != null ? missileEntry[4].ToString() : string.Empty;
-            VisualMissileEffectMinAllowedScaleTxt.Text = missileEntry != null ? missileEntry[5].ToString() : string.Empty;
-            VisualMissileEffectMaxAllowedScaleTxt.Text = missileEntry != null ? missileEntry[6].ToString() : string.Empty;
+            var hasScaleLimits = missileEntry != null && WoWVersionManager.IsWotlkOrGreaterSelected;
+            VisualMissileEffectMinAllowedScaleTxt.Text = hasScaleLimits ? missileEntry["MinAllowedScale"].ToString() : string.Empty;
+            VisualMissileEffectMaxAllowedScaleTxt.Text = hasScaleLimits ? missileEntry["MaxAllowedScale"].ToString() : string.Empty;
             VisualMissileEffectIdTxt.IsEnabled = missileEntry != null && spellSelected;
             VisualMissileEffectNameTxt.IsEnabled = missileEntry != null && spellSelected;
             VisualMissileEffectFilePathTxt.IsEnabled = missileEntry != null && spellSelected;
             VisualMissileEffectAreaEffectSizeTxt.IsEnabled = missileEntry != null && spellSelected;
             VisualMissileEffectScaleTxt.IsEnabled = missileEntry != null && spellSelected;
-            VisualMissileEffectMinAllowedScaleTxt.IsEnabled = missileEntry != null && spellSelected;
-            VisualMissileEffectMaxAllowedScaleTxt.IsEnabled = missileEntry != null && spellSelected;
+            VisualMissileEffectMinAllowedScaleTxt.IsEnabled = hasScaleLimits && spellSelected;
+            VisualMissileEffectMaxAllowedScaleTxt.IsEnabled = hasScaleLimits && spellSelected;
             if (controller == null)
             {
                 return;
@@ -4912,12 +4944,15 @@ namespace SpellEditor
                     row["MissileFollowApproach"] = VisualMissileFollowApproachTxt.Text;
                     row["MissileFollowGroundFlags"] = VisualMissileFollowGroundFlagsTxt.Text;
                     row["MissileMotion"] = VisualMissileMotionTxt.Text;
-                    row["MissileCastOffsetX"] = VisualMissileCastOffsetXTxt.Text;
-                    row["MissileCastOffsetY"] = VisualMissileCastOffsetYTxt.Text;
-                    row["MissileCastOffsetZ"] = VisualMissileCastOffsetZTxt.Text;
-                    row["MissileImpactOffsetX"] = VisualMissileImpactOffsetXTxt.Text;
-                    row["MissileImpactOffsetY"] = VisualMissileImpactOffsetYTxt.Text;
-                    row["MissileImpactOffsetZ"] = VisualMissileImpactOffsetZTxt.Text;
+                    if (WoWVersionManager.IsWotlkOrGreaterSelected)
+                    {
+                        row["MissileCastOffsetX"] = VisualMissileCastOffsetXTxt.Text;
+                        row["MissileCastOffsetY"] = VisualMissileCastOffsetYTxt.Text;
+                        row["MissileCastOffsetZ"] = VisualMissileCastOffsetZTxt.Text;
+                        row["MissileImpactOffsetX"] = VisualMissileImpactOffsetXTxt.Text;
+                        row["MissileImpactOffsetY"] = VisualMissileImpactOffsetYTxt.Text;
+                        row["MissileImpactOffsetZ"] = VisualMissileImpactOffsetZTxt.Text;
+                    }
                     row.EndEdit();
                     adapter.CommitChanges(query, results);
                     ShowFlyoutMessage($"Saved changes to SpellVisual {_currentVisualController.VisualId}.");
@@ -4930,8 +4965,13 @@ namespace SpellEditor
             if (sender != VisualNew)
                 return;
             var newId = uint.Parse(adapter.QuerySingleValue("SELECT MAX(ID) FROM spellvisual").ToString()) + 1;
-            // FIXME(Harry): Hardcoded for 3.3.5
-            GetDBAdapter().Execute($"INSERT INTO spellvisual VALUES ({newId}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4294967295, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)");
+            var binding = BindingManager.GetInstance().FindBinding("SpellVisual");
+            if (binding == null)
+                return;
+            var columns = binding.Fields.Select(field => $"`{field.Name}`");
+            var values = binding.Fields.Select(field => field.Name == "ID" ? newId.ToString(CultureInfo.InvariantCulture) :
+                field.Name == "MissileAttachment" ? uint.MaxValue.ToString(CultureInfo.InvariantCulture) : "0");
+            GetDBAdapter().Execute($"INSERT INTO spellvisual ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)})");
             // Link up to selected spell
             SpellVisual1.Text = newId.ToString();
             GetDBAdapter().Execute($"UPDATE spell SET SpellVisual1 = {newId} WHERE ID = {selectedID}");
@@ -4946,6 +4986,14 @@ namespace SpellEditor
             VisualMissileEffectList.ItemsSource = null;
             UpdateSpellVisualTab(uint.Parse(menu.VisualId), 0, true);
             ShowFlyoutMessage($"SpellVisual {menu.VisualId} MissileModel set to {menu.MissileId}.");
+        }
+
+        private void InsertVisualRow(string table, DataRow row)
+        {
+            var columns = row.Table.Columns.Cast<DataColumn>().Select(column => $"`{column.ColumnName}`");
+            var values = row.ItemArray.Select(value =>
+                "'" + adapter.EscapeString(Convert.ToString(value, CultureInfo.InvariantCulture)) + "'");
+            adapter.Execute($"INSERT INTO `{table}` ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)})");
         }
         #endregion
 
