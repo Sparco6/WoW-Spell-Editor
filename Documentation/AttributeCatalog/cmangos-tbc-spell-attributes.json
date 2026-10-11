@@ -1,0 +1,4178 @@
+{
+  "schema_version": 1,
+  "wow_version": "2.4.3",
+  "client_build": 8606,
+  "emulator": "CMangosTbc",
+  "generated_from": {
+    "repository": "https://github.com/Sparco6/MasterWoW-Project",
+    "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+    "path": "src/game/Spells/SpellDefines.h"
+  },
+  "notes": [
+    "Client fields Attributes through AttributesEx6 are edited without dropping unknown bits.",
+    "AttributesServerside is catalogued for developer reference and is not serialized into the TBC client Spell.dbc.",
+    "Unknown, NYI and unused bits remain visible and editable; labels do not imply runtime support."
+  ],
+  "fields": [
+    {
+      "field": "Attributes",
+      "core_enum": "SpellAttributes",
+      "client_editable": true,
+      "width_bits": 32,
+      "attributes": [
+        {
+          "field": "Attributes",
+          "bit_index": 0,
+          "mask": "0x00000001",
+          "cmangos_enum": "SPELL_ATTR_PROC_FAILURE_BURNS_CHARGE",
+          "display_name": "Proc Failure Burns Charge",
+          "description": "0",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 30
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 1,
+          "mask": "0x00000002",
+          "cmangos_enum": "SPELL_ATTR_USES_RANGED_SLOT",
+          "display_name": "Uses Ranged Slot",
+          "description": "1 All ranged abilites have this flag",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 31
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 2,
+          "mask": "0x00000004",
+          "cmangos_enum": "SPELL_ATTR_ON_NEXT_SWING_NO_DAMAGE",
+          "display_name": "On Next Swing No Damage",
+          "description": "2 on next swing",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 32
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 3,
+          "mask": "0x00000008",
+          "cmangos_enum": "SPELL_ATTR_DO_NOT_LOG_IMMUNE_MISSES",
+          "display_name": "Do Not Log Immune Misses",
+          "description": "3 not set in 3.0.3",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 33
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 4,
+          "mask": "0x00000010",
+          "cmangos_enum": "SPELL_ATTR_IS_ABILITY",
+          "display_name": "Is Ability",
+          "description": "4 Displays ability instead of spell clientside",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 34
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 5,
+          "mask": "0x00000020",
+          "cmangos_enum": "SPELL_ATTR_IS_TRADESKILL",
+          "display_name": "Is Tradeskill",
+          "description": "5 trade spells, will be added by client to a sublist of profession spell",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 35
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 6,
+          "mask": "0x00000040",
+          "cmangos_enum": "SPELL_ATTR_PASSIVE",
+          "display_name": "Passive",
+          "description": "6 Passive spell",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 36
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 7,
+          "mask": "0x00000080",
+          "cmangos_enum": "SPELL_ATTR_DO_NOT_DISPLAY",
+          "display_name": "Do Not Display",
+          "description": "7 Hidden in Spellbook, Aura Icon, Combat Log",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 37
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 8,
+          "mask": "0x00000100",
+          "cmangos_enum": "SPELL_ATTR_DO_NOT_LOG",
+          "display_name": "Do Not Log",
+          "description": "8",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 38
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 9,
+          "mask": "0x00000200",
+          "cmangos_enum": "SPELL_ATTR_HELD_ITEM_ONLY",
+          "display_name": "Held Item Only",
+          "description": "9 Client automatically selects item from mainhand slot as a cast target",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 39
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 10,
+          "mask": "0x00000400",
+          "cmangos_enum": "SPELL_ATTR_ON_NEXT_SWING",
+          "display_name": "On Next Swing",
+          "description": "10 on next swing 2",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 40
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 11,
+          "mask": "0x00000800",
+          "cmangos_enum": "SPELL_ATTR_WEARER_CASTS_PROC_TRIGGER",
+          "display_name": "Wearer Casts Proc Trigger",
+          "description": "11",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 41
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 12,
+          "mask": "0x00001000",
+          "cmangos_enum": "SPELL_ATTR_DAYTIME_ONLY",
+          "display_name": "Daytime Only",
+          "description": "12 only useable at daytime, not set in 2.4.2",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 42
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 13,
+          "mask": "0x00002000",
+          "cmangos_enum": "SPELL_ATTR_NIGHT_ONLY",
+          "display_name": "Night Only",
+          "description": "13 only useable at night, not set in 2.4.2",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 43
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 14,
+          "mask": "0x00004000",
+          "cmangos_enum": "SPELL_ATTR_ONLY_INDOORS",
+          "display_name": "Only Indoors",
+          "description": "14 only useable indoors, not set in 2.4.2",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 44
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 15,
+          "mask": "0x00008000",
+          "cmangos_enum": "SPELL_ATTR_ONLY_OUTDOORS",
+          "display_name": "Only Outdoors",
+          "description": "15 Only useable outdoors.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 45
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 16,
+          "mask": "0x00010000",
+          "cmangos_enum": "SPELL_ATTR_NOT_SHAPESHIFT",
+          "display_name": "Not Shapeshift",
+          "description": "16 Not while shapeshifted",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 46
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 17,
+          "mask": "0x00020000",
+          "cmangos_enum": "SPELL_ATTR_ONLY_STEALTHED",
+          "display_name": "Only Stealthed",
+          "description": "17 Must be in stealth",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 47
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 18,
+          "mask": "0x00040000",
+          "cmangos_enum": "SPELL_ATTR_DO_NOT_SHEATH",
+          "display_name": "Do Not Sheath",
+          "description": "18 client won't hide unit weapons in sheath on cast/channel TODO: Implement",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 48
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 19,
+          "mask": "0x00080000",
+          "cmangos_enum": "SPELL_ATTR_SCALES_WITH_CREATURE_LEVEL",
+          "display_name": "Scales With Creature Level",
+          "description": "19 spelldamage depends on caster level",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 49
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 20,
+          "mask": "0x00100000",
+          "cmangos_enum": "SPELL_ATTR_CANCELS_AUTO_ATTACK_COMBAT",
+          "display_name": "Cancels Auto Attack Combat",
+          "description": "20 Stop attack after use this spell (and not begin attack if use)",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 50
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 21,
+          "mask": "0x00200000",
+          "cmangos_enum": "SPELL_ATTR_NO_ACTIVE_DEFENSE",
+          "display_name": "No Active Defense",
+          "description": "21 Cannot be dodged/parried/blocked",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 51
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 22,
+          "mask": "0x00400000",
+          "cmangos_enum": "SPELL_ATTR_TRACK_TARGET_IN_CAST_PLAYER_ONLY",
+          "display_name": "Track Target In Cast Player Only",
+          "description": "22 SetTrackingTarget",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 52
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 23,
+          "mask": "0x00800000",
+          "cmangos_enum": "SPELL_ATTR_ALLOW_CAST_WHILE_DEAD",
+          "display_name": "Allow Cast While Dead",
+          "description": "23 castable while dead",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 53
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 24,
+          "mask": "0x01000000",
+          "cmangos_enum": "SPELL_ATTR_ALLOW_WHILE_MOUNTED",
+          "display_name": "Allow While Mounted",
+          "description": "24 castable while mounted",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 54
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 25,
+          "mask": "0x02000000",
+          "cmangos_enum": "SPELL_ATTR_COOLDOWN_ON_EVENT",
+          "display_name": "Cooldown On Event",
+          "description": "25 Activate and start cooldown after aura fade or remove summoned creature or go",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 55
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 26,
+          "mask": "0x04000000",
+          "cmangos_enum": "SPELL_ATTR_AURA_IS_DEBUFF",
+          "display_name": "Aura Is Debuff",
+          "description": "26",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 56
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 27,
+          "mask": "0x08000000",
+          "cmangos_enum": "SPELL_ATTR_ALLOW_WHILE_SITTING",
+          "display_name": "Allow While Sitting",
+          "description": "27 castable while sitting",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 57
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 28,
+          "mask": "0x10000000",
+          "cmangos_enum": "SPELL_ATTR_NOT_IN_COMBAT_ONLY_PEACEFUL",
+          "display_name": "Not In Combat Only Peaceful",
+          "description": "28 Cannot be used in combat",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 58
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 29,
+          "mask": "0x20000000",
+          "cmangos_enum": "SPELL_ATTR_NO_IMMUNITIES",
+          "display_name": "No Immunities",
+          "description": "29 unaffected by invulnerability",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 59
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 30,
+          "mask": "0x40000000",
+          "cmangos_enum": "SPELL_ATTR_HEARTBEAT_RESIST",
+          "display_name": "Heartbeat Resist",
+          "description": "30 Chance for spell effects to break early (heartbeat resist)",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 60
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "Attributes",
+          "bit_index": 31,
+          "mask": "0x80000000",
+          "cmangos_enum": "SPELL_ATTR_NO_AURA_CANCEL",
+          "display_name": "No Aura Cancel",
+          "description": "31 positive aura can't be canceled",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 61
+          },
+          "support": "supported",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "field": "AttributesEx",
+      "core_enum": "SpellAttributesEx",
+      "client_editable": true,
+      "width_bits": 32,
+      "attributes": [
+        {
+          "field": "AttributesEx",
+          "bit_index": 0,
+          "mask": "0x00000001",
+          "cmangos_enum": "SPELL_ATTR_EX_DISMISS_PET_FIRST",
+          "display_name": "Dismiss Pet First",
+          "description": "0",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 66
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 1,
+          "mask": "0x00000002",
+          "cmangos_enum": "SPELL_ATTR_EX_USE_ALL_MANA",
+          "display_name": "Use All Mana",
+          "description": "1",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 67
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 2,
+          "mask": "0x00000004",
+          "cmangos_enum": "SPELL_ATTR_EX_IS_CHANNELED",
+          "display_name": "Is Channeled",
+          "description": "2",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 68
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 3,
+          "mask": "0x00000008",
+          "cmangos_enum": "SPELL_ATTR_EX_NO_REDIRECTION",
+          "display_name": "No Redirection",
+          "description": "3",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 69
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 4,
+          "mask": "0x00000010",
+          "cmangos_enum": "SPELL_ATTR_EX_NO_SKILL_INCREASE",
+          "display_name": "No Skill Increase",
+          "description": "4",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 70
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 5,
+          "mask": "0x00000020",
+          "cmangos_enum": "SPELL_ATTR_EX_ALLOW_WHILE_STEALTHED",
+          "display_name": "Allow While Stealthed",
+          "description": "5",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 71
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 6,
+          "mask": "0x00000040",
+          "cmangos_enum": "SPELL_ATTR_EX_IS_SELF_CHANNELED",
+          "display_name": "Is Self Channeled",
+          "description": "6",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 72
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 7,
+          "mask": "0x00000080",
+          "cmangos_enum": "SPELL_ATTR_EX_NO_REFLECTION",
+          "display_name": "No Reflection",
+          "description": "7",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 73
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 8,
+          "mask": "0x00000100",
+          "cmangos_enum": "SPELL_ATTR_EX_ONLY_PEACEFUL_TARGETS",
+          "display_name": "Only Peaceful Targets",
+          "description": "8 Target must not be in combat",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 74
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 9,
+          "mask": "0x00000200",
+          "cmangos_enum": "SPELL_ATTR_EX_INITIATES_COMBAT_ENABLES_AUTO_ATTACK",
+          "display_name": "Initiates Combat Enables Auto Attack",
+          "description": "9",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 75
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 10,
+          "mask": "0x00000400",
+          "cmangos_enum": "SPELL_ATTR_EX_NO_THREAT",
+          "display_name": "No Threat",
+          "description": "10",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 76
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 11,
+          "mask": "0x00000800",
+          "cmangos_enum": "SPELL_ATTR_EX_AURA_UNIQUE",
+          "display_name": "Aura Unique",
+          "description": "11",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 77
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 12,
+          "mask": "0x00001000",
+          "cmangos_enum": "SPELL_ATTR_EX_FAILURE_BREAKS_STEALTH",
+          "display_name": "Failure Breaks Stealth",
+          "description": "12",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 78
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 13,
+          "mask": "0x00002000",
+          "cmangos_enum": "SPELL_ATTR_EX_TOGGLE_FARSIGHT",
+          "display_name": "Toggle Farsight",
+          "description": "13",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 79
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 14,
+          "mask": "0x00004000",
+          "cmangos_enum": "SPELL_ATTR_EX_TRACK_TARGET_IN_CHANNEL",
+          "display_name": "Track Target In Channel",
+          "description": "14",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 80
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 15,
+          "mask": "0x00008000",
+          "cmangos_enum": "SPELL_ATTR_EX_IMMUNITY_PURGES_EFFECT",
+          "display_name": "Immunity Purges Effect",
+          "description": "15 auras which give immunity also punch through and purge the given effect",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 81
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 16,
+          "mask": "0x00010000",
+          "cmangos_enum": "SPELL_ATTR_EX_IMMUNITY_TO_HOSTILE_AND_FRIENDLY_EFFECTS",
+          "display_name": "Immunity To Hostile And Friendly Effects",
+          "description": "16 TODO: Investigate use",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 82
+          },
+          "support": "supported",
+          "confidence": "low"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 17,
+          "mask": "0x00020000",
+          "cmangos_enum": "SPELL_ATTR_EX_NO_AUTOCAST_AI",
+          "display_name": "No Autocast AI",
+          "description": "17",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 83
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 18,
+          "mask": "0x00040000",
+          "cmangos_enum": "SPELL_ATTR_EX_PREVENTS_ANIM",
+          "display_name": "Prevents Anim",
+          "description": "18",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 84
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 19,
+          "mask": "0x00080000",
+          "cmangos_enum": "SPELL_ATTR_EX_EXCLUDE_CASTER",
+          "display_name": "Exclude Caster",
+          "description": "19 spells with area effect or friendly targets that exclude the caster",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 85
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 20,
+          "mask": "0x00100000",
+          "cmangos_enum": "SPELL_ATTR_EX_FINISHING_MOVE_DAMAGE",
+          "display_name": "Finishing Move Damage",
+          "description": "20 Uses combo points",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 86
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 21,
+          "mask": "0x00200000",
+          "cmangos_enum": "SPELL_ATTR_EX_THREAT_ONLY_ON_MISS",
+          "display_name": "Threat Only On Miss",
+          "description": "21",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 87
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 22,
+          "mask": "0x00400000",
+          "cmangos_enum": "SPELL_ATTR_EX_FINISHING_MOVE_DURATION",
+          "display_name": "Finishing Move Duration",
+          "description": "22 Uses combo points",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 88
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 23,
+          "mask": "0x00800000",
+          "cmangos_enum": "SPELL_ATTR_EX_IGNORE_OWNERS_DEATH",
+          "display_name": "Ignore Owners Death",
+          "description": "23",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 89
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 24,
+          "mask": "0x01000000",
+          "cmangos_enum": "SPELL_ATTR_EX_SPECIAL_SKILLUP",
+          "display_name": "Special Skillup",
+          "description": "24",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 90
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 25,
+          "mask": "0x02000000",
+          "cmangos_enum": "SPELL_ATTR_EX_AURA_STAYS_AFTER_COMBAT",
+          "display_name": "Aura Stays After Combat",
+          "description": "25",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 91
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 26,
+          "mask": "0x04000000",
+          "cmangos_enum": "SPELL_ATTR_EX_REQUIRE_ALL_TARGETS",
+          "display_name": "Require All Targets",
+          "description": "26",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 92
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 27,
+          "mask": "0x08000000",
+          "cmangos_enum": "SPELL_ATTR_EX_DISCOUNT_POWER_ON_MISS",
+          "display_name": "Discount Power On Miss",
+          "description": "27",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 93
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 28,
+          "mask": "0x10000000",
+          "cmangos_enum": "SPELL_ATTR_EX_NO_AURA_ICON",
+          "display_name": "No Aura Icon",
+          "description": "28",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 94
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 29,
+          "mask": "0x20000000",
+          "cmangos_enum": "SPELL_ATTR_EX_NAME_IN_CHANNEL_BAR",
+          "display_name": "Name In Channel Bar",
+          "description": "29",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 95
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 30,
+          "mask": "0x40000000",
+          "cmangos_enum": "SPELL_ATTR_EX_COMBO_ON_BLOCK",
+          "display_name": "Combo On Block",
+          "description": "30 NYI",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 96
+          },
+          "support": "nyi",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx",
+          "bit_index": 31,
+          "mask": "0x80000000",
+          "cmangos_enum": "SPELL_ATTR_EX_CAST_WHEN_LEARNED",
+          "display_name": "Cast When Learned",
+          "description": "31",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 97
+          },
+          "support": "supported",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "field": "AttributesEx2",
+      "core_enum": "SpellAttributesEx2",
+      "client_editable": true,
+      "width_bits": 32,
+      "attributes": [
+        {
+          "field": "AttributesEx2",
+          "bit_index": 0,
+          "mask": "0x00000001",
+          "cmangos_enum": "SPELL_ATTR_EX2_ALLOW_DEAD_TARGET",
+          "display_name": "Allow Dead Target",
+          "description": "0 can target dead unit or corpse",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 102
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 1,
+          "mask": "0x00000002",
+          "cmangos_enum": "SPELL_ATTR_EX2_NO_SHAPESHIFT_UI",
+          "display_name": "No Shapeshift UI",
+          "description": "1",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 103
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 2,
+          "mask": "0x00000004",
+          "cmangos_enum": "SPELL_ATTR_EX2_IGNORE_LINE_OF_SIGHT",
+          "display_name": "Ignore Line Of Sight",
+          "description": "2",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 104
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 3,
+          "mask": "0x00000008",
+          "cmangos_enum": "SPELL_ATTR_EX2_ALLOW_LOW_LEVEL_BUFF",
+          "display_name": "Allow Low Level Buff",
+          "description": "3",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 105
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 4,
+          "mask": "0x00000010",
+          "cmangos_enum": "SPELL_ATTR_EX2_USE_SHAPESHIFT_BAR",
+          "display_name": "Use Shapeshift Bar",
+          "description": "4 client displays icon in stance bar when learned, even if not shapeshift",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 106
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 5,
+          "mask": "0x00000020",
+          "cmangos_enum": "SPELL_ATTR_EX2_AUTO_REPEAT",
+          "display_name": "Auto Repeat",
+          "description": "5",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 107
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 6,
+          "mask": "0x00000040",
+          "cmangos_enum": "SPELL_ATTR_EX2_CANNOT_CAST_ON_TAPPED",
+          "display_name": "Cannot Cast On Tapped",
+          "description": "6 only usable on tapped by yourself",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 108
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 7,
+          "mask": "0x00000080",
+          "cmangos_enum": "SPELL_ATTR_EX2_DO_NOT_REPORT_SPELL_FAILURE",
+          "display_name": "Do Not Report Spell Failure",
+          "description": "7",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 109
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 8,
+          "mask": "0x00000100",
+          "cmangos_enum": "SPELL_ATTR_EX2_INCLUDE_IN_ADVANCED_COMBAT_LOG",
+          "display_name": "Include In Advanced Combat Log",
+          "description": "8 not used anywhere - likely also had different meaning",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 110
+          },
+          "support": "unused",
+          "confidence": "low"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 9,
+          "mask": "0x00000200",
+          "cmangos_enum": "SPELL_ATTR_EX2_ALWAYS_CAST_AS_UNIT",
+          "display_name": "Always Cast As Unit",
+          "description": "9 no idea",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 111
+          },
+          "support": "supported",
+          "confidence": "low"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 10,
+          "mask": "0x00000400",
+          "cmangos_enum": "SPELL_ATTR_EX2_SPECIAL_TAMING_FLAG",
+          "display_name": "Special Taming Flag",
+          "description": "10 no idea",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 112
+          },
+          "support": "supported",
+          "confidence": "low"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 11,
+          "mask": "0x00000800",
+          "cmangos_enum": "SPELL_ATTR_EX2_NO_TARGET_PER_SECOND_COSTS",
+          "display_name": "No Target Per Second Costs",
+          "description": "11",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 113
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 12,
+          "mask": "0x00001000",
+          "cmangos_enum": "SPELL_ATTR_EX2_CHAIN_FROM_CASTER",
+          "display_name": "Chain From Caster",
+          "description": "12",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 114
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 13,
+          "mask": "0x00002000",
+          "cmangos_enum": "SPELL_ATTR_EX2_ENCHANT_OWN_ITEM_ONLY",
+          "display_name": "Enchant Own Item Only",
+          "description": "13",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 115
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 14,
+          "mask": "0x00004000",
+          "cmangos_enum": "SPELL_ATTR_EX2_ALLOW_WHILE_INVISIBLE",
+          "display_name": "Allow While Invisible",
+          "description": "14",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 116
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 15,
+          "mask": "0x00008000",
+          "cmangos_enum": "SPELL_ATTR_EX2_UNK15",
+          "display_name": "Unk15",
+          "description": "15",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 117
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 16,
+          "mask": "0x00010000",
+          "cmangos_enum": "SPELL_ATTR_EX2_NO_ACTIVE_PETS",
+          "display_name": "No Active Pets",
+          "description": "16",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 118
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 17,
+          "mask": "0x00020000",
+          "cmangos_enum": "SPELL_ATTR_EX2_DO_NOT_RESET_COMBAT_TIMERS",
+          "display_name": "Do Not Reset Combat Timers",
+          "description": "17 suspend weapon timer instead of resetting it, (?Hunters Shot and Stings only have this flag?)",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 119
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 18,
+          "mask": "0x00040000",
+          "cmangos_enum": "SPELL_ATTR_EX2_REQ_DEAD_PET",
+          "display_name": "Req Dead Pet",
+          "description": "18 unconfirmed",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 120
+          },
+          "support": "supported",
+          "confidence": "low"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 19,
+          "mask": "0x00080000",
+          "cmangos_enum": "SPELL_ATTR_EX2_ALLOW_WHILE_NOT_SHAPESHIFTED",
+          "display_name": "Allow While Not Shapeshifted",
+          "description": "19",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 121
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 20,
+          "mask": "0x00100000",
+          "cmangos_enum": "SPELL_ATTR_EX2_INITIATE_COMBAT_POST_CAST",
+          "display_name": "Initiate Combat Post Cast",
+          "description": "20 NYI",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 122
+          },
+          "support": "nyi",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 21,
+          "mask": "0x00200000",
+          "cmangos_enum": "SPELL_ATTR_EX2_FAIL_ON_ALL_TARGETS_IMMUNE",
+          "display_name": "Fail On All Targets Immune",
+          "description": "21",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 123
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 22,
+          "mask": "0x00400000",
+          "cmangos_enum": "SPELL_ATTR_EX2_NO_INITIAL_THREAT",
+          "display_name": "No Initial Threat",
+          "description": "22",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 124
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 23,
+          "mask": "0x00800000",
+          "cmangos_enum": "SPELL_ATTR_EX2_PROC_COOLDOWN_ON_FAILURE",
+          "display_name": "Proc Cooldown On Failure",
+          "description": "23",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 125
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 24,
+          "mask": "0x01000000",
+          "cmangos_enum": "SPELL_ATTR_EX2_ITEM_CAST_WITH_OWNER_SKILL",
+          "display_name": "Item Cast With Owner Skill",
+          "description": "24 NYI",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 126
+          },
+          "support": "nyi",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 25,
+          "mask": "0x02000000",
+          "cmangos_enum": "SPELL_ATTR_EX2_DONT_BLOCK_MANA_REGEN",
+          "display_name": "Dont Block Mana Regen",
+          "description": "25 maybe different meaning - doesnt hurt anything however",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 127
+          },
+          "support": "supported",
+          "confidence": "low"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 26,
+          "mask": "0x04000000",
+          "cmangos_enum": "SPELL_ATTR_EX2_NO_SCHOOL_IMMUNITIES",
+          "display_name": "No School Immunities",
+          "description": "26",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 128
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 27,
+          "mask": "0x08000000",
+          "cmangos_enum": "SPELL_ATTR_EX2_IGNORE_WEAPONSKILL",
+          "display_name": "Ignore Weaponskill",
+          "description": "27 NYI",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 129
+          },
+          "support": "nyi",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 28,
+          "mask": "0x10000000",
+          "cmangos_enum": "SPELL_ATTR_EX2_NOT_AN_ACTION",
+          "display_name": "Not An Action",
+          "description": "28",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 130
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 29,
+          "mask": "0x20000000",
+          "cmangos_enum": "SPELL_ATTR_EX2_CANT_CRIT",
+          "display_name": "Cant Crit",
+          "description": "29 Spell can't crit",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 131
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 30,
+          "mask": "0x40000000",
+          "cmangos_enum": "SPELL_ATTR_EX2_ACTIVE_THREAT",
+          "display_name": "Active Threat",
+          "description": "30 NYI - has some sort of active threat component like fire nova totem",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 132
+          },
+          "support": "nyi",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx2",
+          "bit_index": 31,
+          "mask": "0x80000000",
+          "cmangos_enum": "SPELL_ATTR_EX2_RETAIN_ITEM_CAST",
+          "display_name": "Retain Item Cast",
+          "description": "31 Possibly could have stacking implications in aura triggered spells because item guid is retained",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 133
+          },
+          "support": "supported",
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "field": "AttributesEx3",
+      "core_enum": "SpellAttributesEx3",
+      "client_editable": true,
+      "width_bits": 32,
+      "attributes": [
+        {
+          "field": "AttributesEx3",
+          "bit_index": 0,
+          "mask": "0x00000001",
+          "cmangos_enum": "SPELL_ATTR_EX3_PVP_ENABLING",
+          "display_name": "PVP Enabling",
+          "description": "0 Spell landed counts as hostile action against enemy even if it doesn't trigger combat state, propagates PvP flags",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 138
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 1,
+          "mask": "0x00000002",
+          "cmangos_enum": "SPELL_ATTR_EX3_NO_PROC_EQUIP_REQUIREMENT",
+          "display_name": "No Proc Equip Requirement",
+          "description": "1",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 139
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 2,
+          "mask": "0x00000004",
+          "cmangos_enum": "SPELL_ATTR_EX3_NO_CASTING_BAR_TEXT",
+          "display_name": "No Casting Bar Text",
+          "description": "2",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 140
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 3,
+          "mask": "0x00000008",
+          "cmangos_enum": "SPELL_ATTR_EX3_COMPLETELY_BLOCKED",
+          "display_name": "Completely Blocked",
+          "description": "3",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 141
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 4,
+          "mask": "0x00000010",
+          "cmangos_enum": "SPELL_ATTR_EX3_NO_RES_TIMER",
+          "display_name": "No Res Timer",
+          "description": "4",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 142
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 5,
+          "mask": "0x00000020",
+          "cmangos_enum": "SPELL_ATTR_EX3_NO_DURABILITY_LOSS",
+          "display_name": "No Durability Loss",
+          "description": "5",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 143
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 6,
+          "mask": "0x00000040",
+          "cmangos_enum": "SPELL_ATTR_EX3_NO_AVOIDANCE",
+          "display_name": "No Avoidance",
+          "description": "6",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 144
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 7,
+          "mask": "0x00000080",
+          "cmangos_enum": "SPELL_ATTR_EX3_DOT_STACKING_RULE",
+          "display_name": "Dot Stacking Rule",
+          "description": "7 create a separate (de)buff stack for each caster",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 145
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 8,
+          "mask": "0x00000100",
+          "cmangos_enum": "SPELL_ATTR_EX3_ONLY_ON_PLAYER",
+          "display_name": "Only On Player",
+          "description": "8 Can target only player",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 146
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 9,
+          "mask": "0x00000200",
+          "cmangos_enum": "SPELL_ATTR_EX3_NOT_A_PROC",
+          "display_name": "Not A Proc",
+          "description": "9 aura periodic trigger is not evaluated as triggered (official meaning of proc)",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 147
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 10,
+          "mask": "0x00000400",
+          "cmangos_enum": "SPELL_ATTR_EX3_REQUIRES_MAIN_HAND_WEAPON",
+          "display_name": "Requires Main Hand Weapon",
+          "description": "10",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 148
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 11,
+          "mask": "0x00000800",
+          "cmangos_enum": "SPELL_ATTR_EX3_ONLY_BATTLEGROUNDS",
+          "display_name": "Only Battlegrounds",
+          "description": "11 Can casted only on battleground",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 149
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 12,
+          "mask": "0x00001000",
+          "cmangos_enum": "SPELL_ATTR_EX3_ONLY_ON_GHOSTS",
+          "display_name": "Only On Ghosts",
+          "description": "12",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 150
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 13,
+          "mask": "0x00002000",
+          "cmangos_enum": "SPELL_ATTR_EX3_HIDE_CHANNEL_BAR",
+          "display_name": "Hide Channel Bar",
+          "description": "13",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 151
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 14,
+          "mask": "0x00004000",
+          "cmangos_enum": "SPELL_ATTR_EX3_HIDE_IN_RAID_FILTER",
+          "display_name": "Hide In Raid Filter",
+          "description": "14 \"Honorless Target\" only these spells have this flag",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 152
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 15,
+          "mask": "0x00008000",
+          "cmangos_enum": "SPELL_ATTR_EX3_NORMAL_RANGED_ATTACK",
+          "display_name": "Normal Ranged Attack",
+          "description": "15 Spells with this attribute are processed as ranged attacks in client",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 153
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 16,
+          "mask": "0x00010000",
+          "cmangos_enum": "SPELL_ATTR_EX3_SUPPRESS_CASTER_PROCS",
+          "display_name": "Suppress Caster Procs",
+          "description": "16",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 154
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 17,
+          "mask": "0x00020000",
+          "cmangos_enum": "SPELL_ATTR_EX3_SUPPRESS_TARGET_PROCS",
+          "display_name": "Suppress Target Procs",
+          "description": "17",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 155
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 18,
+          "mask": "0x00040000",
+          "cmangos_enum": "SPELL_ATTR_EX3_ALWAYS_HIT",
+          "display_name": "Always Hit",
+          "description": "18 Spell should always hit its target",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 156
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 19,
+          "mask": "0x00080000",
+          "cmangos_enum": "SPELL_ATTR_EX3_INSTANT_TARGET_PROCS",
+          "display_name": "Instant Target Procs",
+          "description": "19 Related to spell batching - not an issue for us",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 157
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 20,
+          "mask": "0x00100000",
+          "cmangos_enum": "SPELL_ATTR_EX3_ALLOW_AURA_WHILE_DEAD",
+          "display_name": "Allow Aura While Dead",
+          "description": "20 Death persistent spells",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 158
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 21,
+          "mask": "0x00200000",
+          "cmangos_enum": "SPELL_ATTR_EX3_ONLY_PROC_OUTDOORS",
+          "display_name": "Only Proc Outdoors",
+          "description": "21",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 159
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 22,
+          "mask": "0x00400000",
+          "cmangos_enum": "SPELL_ATTR_EX3_CASTING_CANCELS_AUTOREPEAT",
+          "display_name": "Casting Cancels Autorepeat",
+          "description": "22",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 160
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 23,
+          "mask": "0x00800000",
+          "cmangos_enum": "SPELL_ATTR_EX3_NO_DAMAGE_HISTORY",
+          "display_name": "No Damage History",
+          "description": "23",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 161
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 24,
+          "mask": "0x01000000",
+          "cmangos_enum": "SPELL_ATTR_EX3_REQUIRES_OFFHAND_WEAPON",
+          "display_name": "Requires Offhand Weapon",
+          "description": "24 Req offhand weapon",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 162
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 25,
+          "mask": "0x02000000",
+          "cmangos_enum": "SPELL_ATTR_EX3_TREAT_AS_PERIODIC",
+          "display_name": "Treat As Periodic",
+          "description": "25 Treated as periodic spell",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 163
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 26,
+          "mask": "0x04000000",
+          "cmangos_enum": "SPELL_ATTR_EX3_CAN_PROC_FROM_PROCS",
+          "display_name": "Can Proc From Procs",
+          "description": "26 Auras with this attribute can proc off procced spells (periodic triggers etc)",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 164
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 27,
+          "mask": "0x08000000",
+          "cmangos_enum": "SPELL_ATTR_EX3_ONLY_PROC_ON_CASTER",
+          "display_name": "Only Proc On Caster",
+          "description": "27",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 165
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 28,
+          "mask": "0x10000000",
+          "cmangos_enum": "SPELL_ATTR_EX3_IGNORE_CASTER_AND_TARGET_RESTRICTIONS",
+          "display_name": "Ignore Caster And Target Restrictions",
+          "description": "28 NYI",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 166
+          },
+          "support": "nyi",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 29,
+          "mask": "0x20000000",
+          "cmangos_enum": "SPELL_ATTR_EX3_IGNORE_CASTER_MODIFIERS",
+          "display_name": "Ignore Caster Modifiers",
+          "description": "29 Resistances should still affect damage",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 167
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 30,
+          "mask": "0x40000000",
+          "cmangos_enum": "SPELL_ATTR_EX3_DO_NOT_DISPLAY_RANGE",
+          "display_name": "Do Not Display Range",
+          "description": "30",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 168
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx3",
+          "bit_index": 31,
+          "mask": "0x80000000",
+          "cmangos_enum": "SPELL_ATTR_EX3_NOT_ON_AOE_IMMUNE",
+          "display_name": "Not On AOE Immune",
+          "description": "31",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 169
+          },
+          "support": "supported",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "field": "AttributesEx4",
+      "core_enum": "SpellAttributesEx4",
+      "client_editable": true,
+      "width_bits": 32,
+      "attributes": [
+        {
+          "field": "AttributesEx4",
+          "bit_index": 0,
+          "mask": "0x00000001",
+          "cmangos_enum": "SPELL_ATTR_EX4_NO_CAST_LOG",
+          "display_name": "No Cast Log",
+          "description": "0",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 174
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 1,
+          "mask": "0x00000002",
+          "cmangos_enum": "SPELL_ATTR_EX4_CLASS_TRIGGER_ONLY_ON_TARGET",
+          "display_name": "Class Trigger Only On Target",
+          "description": "1",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 175
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 2,
+          "mask": "0x00000004",
+          "cmangos_enum": "SPELL_ATTR_EX4_AURA_EXPIRES_OFFLINE",
+          "display_name": "Aura Expires Offline",
+          "description": "2",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 176
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 3,
+          "mask": "0x00000008",
+          "cmangos_enum": "SPELL_ATTR_EX4_NO_HELPFUL_THREAT",
+          "display_name": "No Helpful Threat",
+          "description": "3",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 177
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 4,
+          "mask": "0x00000010",
+          "cmangos_enum": "SPELL_ATTR_EX4_NO_HARMFUL_THREAT",
+          "display_name": "No Harmful Threat",
+          "description": "4",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 178
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 5,
+          "mask": "0x00000020",
+          "cmangos_enum": "SPELL_ATTR_EX4_ALLOW_CLIENT_TARGETING",
+          "display_name": "Allow Client Targeting",
+          "description": "5",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 179
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 6,
+          "mask": "0x00000040",
+          "cmangos_enum": "SPELL_ATTR_EX4_CANNOT_BE_STOLEN",
+          "display_name": "Cannot Be Stolen",
+          "description": "6 although such auras might be dispellable, they cannot be stolen",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 180
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 7,
+          "mask": "0x00000080",
+          "cmangos_enum": "SPELL_ATTR_EX4_ALLOW_CAST_WHILE_CASTING",
+          "display_name": "Allow Cast While Casting",
+          "description": "7 Can use this spell while another is channeled/cast/autocast",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 181
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 8,
+          "mask": "0x00000100",
+          "cmangos_enum": "SPELL_ATTR_EX4_IGNORE_DAMAGE_TAKEN_MODIFIERS",
+          "display_name": "Ignore Damage Taken Modifiers",
+          "description": "8",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 182
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 9,
+          "mask": "0x00000200",
+          "cmangos_enum": "SPELL_ATTR_EX4_COMBAT_FEEDBACK_WHEN_USABLE",
+          "display_name": "Combat Feedback When Usable",
+          "description": "9 initially disabled / trigger activate from event (Execute, Riposte, Deep Freeze end other)",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 183
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 10,
+          "mask": "0x00000400",
+          "cmangos_enum": "SPELL_ATTR_EX4_WEAPON_SPEED_COST_SCALING",
+          "display_name": "Weapon Speed Cost Scaling",
+          "description": "10",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 184
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 11,
+          "mask": "0x00000800",
+          "cmangos_enum": "SPELL_ATTR_EX4_NO_PARTIAL_IMMUNITY",
+          "display_name": "No Partial Immunity",
+          "description": "11 Curse of Tongues - 1.12.0",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 185
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 12,
+          "mask": "0x00001000",
+          "cmangos_enum": "SPELL_ATTR_EX4_AURA_IS_BUFF",
+          "display_name": "Aura Is Buff",
+          "description": "12",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 186
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 13,
+          "mask": "0x00002000",
+          "cmangos_enum": "SPELL_ATTR_EX4_DO_NOT_LOG_CASTER",
+          "display_name": "Do Not Log Caster",
+          "description": "13",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 187
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 14,
+          "mask": "0x00004000",
+          "cmangos_enum": "SPELL_ATTR_EX4_REACTIVE_DAMAGE_PROC",
+          "display_name": "Reactive Damage Proc",
+          "description": "14",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 188
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 15,
+          "mask": "0x00008000",
+          "cmangos_enum": "SPELL_ATTR_EX4_NOT_IN_SPELLBOOK",
+          "display_name": "Not In Spellbook",
+          "description": "15",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 189
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 16,
+          "mask": "0x00010000",
+          "cmangos_enum": "SPELL_ATTR_EX4_NOT_IN_ARENA",
+          "display_name": "Not In Arena",
+          "description": "16",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 190
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 17,
+          "mask": "0x00020000",
+          "cmangos_enum": "SPELL_ATTR_EX4_IGNORE_DEFAULT_ARENA_RESTRICTIONS",
+          "display_name": "Ignore Default Arena Restrictions",
+          "description": "17",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 191
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 18,
+          "mask": "0x00040000",
+          "cmangos_enum": "SPELL_ATTR_EX4_BOUNCY_CHAIN_MISSILES",
+          "display_name": "Bouncy Chain Missiles",
+          "description": "18",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 192
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 19,
+          "mask": "0x00080000",
+          "cmangos_enum": "SPELL_ATTR_EX4_ALLOW_PROC_WHILE_SITTING",
+          "display_name": "Allow Proc While Sitting",
+          "description": "19",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 193
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 20,
+          "mask": "0x00100000",
+          "cmangos_enum": "SPELL_ATTR_EX4_AURA_NEVER_BOUNCES",
+          "display_name": "Aura Never Bounces",
+          "description": "20 do not give \"more powerful spell\" error message",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 194
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 21,
+          "mask": "0x00200000",
+          "cmangos_enum": "SPELL_ATTR_EX4_ALLOW_ENTERING_ARENA",
+          "display_name": "Allow Entering Arena",
+          "description": "21",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 195
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 22,
+          "mask": "0x00400000",
+          "cmangos_enum": "SPELL_ATTR_EX4_PROC_SUPPRESS_SWING_ANIM",
+          "display_name": "Proc Suppress Swing Anim",
+          "description": "22",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 196
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 23,
+          "mask": "0x00800000",
+          "cmangos_enum": "SPELL_ATTR_EX4_SUPPRESS_WEAPON_PROCS",
+          "display_name": "Suppress Weapon Procs",
+          "description": "23",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 197
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 24,
+          "mask": "0x01000000",
+          "cmangos_enum": "SPELL_ATTR_EX4_AUTO_RANGED_COMBAT",
+          "display_name": "Auto Ranged Combat",
+          "description": "24",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 198
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 25,
+          "mask": "0x02000000",
+          "cmangos_enum": "SPELL_ATTR_EX4_OWNER_POWER_SCALING",
+          "display_name": "Owner Power Scaling",
+          "description": "25 pet scaling auras",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 199
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 26,
+          "mask": "0x04000000",
+          "cmangos_enum": "SPELL_ATTR_EX4_ONLY_FLYING_AREAS",
+          "display_name": "Only Flying Areas",
+          "description": "26",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 200
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 27,
+          "mask": "0x08000000",
+          "cmangos_enum": "SPELL_ATTR_EX4_FORCE_DISPLAY_CASTBAR",
+          "display_name": "Force Display Castbar",
+          "description": "27",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 201
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 28,
+          "mask": "0x10000000",
+          "cmangos_enum": "SPELL_ATTR_EX4_IGNORE_COMBAT_TIMER",
+          "display_name": "Ignore Combat Timer",
+          "description": "28 NYI",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 202
+          },
+          "support": "nyi",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 29,
+          "mask": "0x20000000",
+          "cmangos_enum": "SPELL_ATTR_EX4_UNK29",
+          "display_name": "Unk29",
+          "description": "29 different - impact on dispel of effect 0 of something",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 203
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 30,
+          "mask": "0x40000000",
+          "cmangos_enum": "SPELL_ATTR_EX4_UNK30",
+          "display_name": "Unk30",
+          "description": "30 different - impact on dispel of effect 1 of something",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 204
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx4",
+          "bit_index": 31,
+          "mask": "0x80000000",
+          "cmangos_enum": "SPELL_ATTR_EX4_UNK31",
+          "display_name": "Unk31",
+          "description": "31 different - impact on dispel of effect 2 of something",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 205
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        }
+      ]
+    },
+    {
+      "field": "AttributesEx5",
+      "core_enum": "SpellAttributesEx5",
+      "client_editable": true,
+      "width_bits": 32,
+      "attributes": [
+        {
+          "field": "AttributesEx5",
+          "bit_index": 0,
+          "mask": "0x00000001",
+          "cmangos_enum": "SPELL_ATTR_EX5_ALLOW_ACTIONS_DURING_CHANNEL",
+          "display_name": "Allow Actions During Channel",
+          "description": "0 don't interrupt channeling spells when moving/melee attacking/casting",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 210
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 1,
+          "mask": "0x00000002",
+          "cmangos_enum": "SPELL_ATTR_EX5_NO_REAGENT_COST_WITH_AURA",
+          "display_name": "No Reagent Cost With Aura",
+          "description": "1 not need reagents if UNIT_FLAG_PREPARATION",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 211
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 2,
+          "mask": "0x00000004",
+          "cmangos_enum": "SPELL_ATTR_EX5_REMOVE_ENTERING_ARENA",
+          "display_name": "Remove Entering Arena",
+          "description": "2 removed at enter arena (e.g. 31850 since 3.3.3)",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 212
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 3,
+          "mask": "0x00000008",
+          "cmangos_enum": "SPELL_ATTR_EX5_ALLOW_WHILE_STUNNED",
+          "display_name": "Allow While Stunned",
+          "description": "3",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 213
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 4,
+          "mask": "0x00000010",
+          "cmangos_enum": "SPELL_ATTR_EX5_TRIGGERS_CHANNELING",
+          "display_name": "Triggers Channeling",
+          "description": "4",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 214
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 5,
+          "mask": "0x00000020",
+          "cmangos_enum": "SPELL_ATTR_EX5_LIMIT_N",
+          "display_name": "Limit N",
+          "description": "5 Only N targets can be apply at a time - dont of spells that have N>1 in tbc/wotlk",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 215
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 6,
+          "mask": "0x00000040",
+          "cmangos_enum": "SPELL_ATTR_EX5_IGNORE_AREA_EFFECT_PVP_CHECK",
+          "display_name": "Ignore Area Effect PVP Check",
+          "description": "6",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 216
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 7,
+          "mask": "0x00000080",
+          "cmangos_enum": "SPELL_ATTR_EX5_NOT_ON_PLAYER",
+          "display_name": "Not On Player",
+          "description": "7",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 217
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 8,
+          "mask": "0x00000100",
+          "cmangos_enum": "SPELL_ATTR_EX5_NOT_ON_PLAYER_CONTROLLED_NPC",
+          "display_name": "Not On Player Controlled NPC",
+          "description": "8",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 218
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 9,
+          "mask": "0x00000200",
+          "cmangos_enum": "SPELL_ATTR_EX5_EXTRA_INITIAL_PERIOD",
+          "display_name": "Extra Initial Period",
+          "description": "9 begin periodic tick at aura apply",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 219
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 10,
+          "mask": "0x00000400",
+          "cmangos_enum": "SPELL_ATTR_EX5_DO_NOT_DISPLAY_DURATION",
+          "display_name": "Do Not Display Duration",
+          "description": "10",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 220
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 11,
+          "mask": "0x00000800",
+          "cmangos_enum": "SPELL_ATTR_EX5_IMPLIED_TARGETING",
+          "display_name": "Implied Targeting",
+          "description": "11 targets target of current hostile target if current hostile target is not eligible",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 221
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 12,
+          "mask": "0x00001000",
+          "cmangos_enum": "SPELL_ATTR_EX5_MELEE_CHAIN_TARGETING",
+          "display_name": "Melee Chain Targeting",
+          "description": "12 Cleave Generic chain damage front targets",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 222
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 13,
+          "mask": "0x00002000",
+          "cmangos_enum": "SPELL_ATTR_EX5_SPELL_HASTE_AFFECTS_PERIODIC",
+          "display_name": "Spell Haste Affects Periodic",
+          "description": "13 haste affects duration",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 223
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 14,
+          "mask": "0x00004000",
+          "cmangos_enum": "SPELL_ATTR_EX5_NOT_AVAILABLE_WHILE_CHARMED",
+          "display_name": "Not Available While Charmed",
+          "description": "14",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 224
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 15,
+          "mask": "0x00008000",
+          "cmangos_enum": "SPELL_ATTR_EX5_TREAT_AS_AREA_EFFECT",
+          "display_name": "Treat As Area Effect",
+          "description": "15",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 225
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 16,
+          "mask": "0x00010000",
+          "cmangos_enum": "SPELL_ATTR_EX5_AURA_AFFECTS_NOT_JUST_REQ_EQUIPPED_ITEM",
+          "display_name": "Aura Affects Not Just Req Equipped Item",
+          "description": "16 (only affects protpally One-Handed Weapon Spec)",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 226
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 17,
+          "mask": "0x00020000",
+          "cmangos_enum": "SPELL_ATTR_EX5_ALLOW_WHILE_FLEEING",
+          "display_name": "Allow While Fleeing",
+          "description": "17",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 227
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 18,
+          "mask": "0x00040000",
+          "cmangos_enum": "SPELL_ATTR_EX5_ALLOW_WHILE_CONFUSED",
+          "display_name": "Allow While Confused",
+          "description": "18",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 228
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 19,
+          "mask": "0x00080000",
+          "cmangos_enum": "SPELL_ATTR_EX5_AI_DOESNT_FACE_TARGET",
+          "display_name": "AI Doesnt Face Target",
+          "description": "19",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 229
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 20,
+          "mask": "0x00100000",
+          "cmangos_enum": "SPELL_ATTR_EX5_DO_NOT_ATTEMPT_A_PET_RESUMMON_WHEN_DISMOUNTING",
+          "display_name": "Do Not Attempt A Pet Resummon When Dismounting",
+          "description": "20 NYI - I think we do it innately for festive auras already",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 230
+          },
+          "support": "nyi",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 21,
+          "mask": "0x00200000",
+          "cmangos_enum": "SPELL_ATTR_EX5_IGNORE_TARGET_REQUIREMENTS",
+          "display_name": "Ignore Target Requirements",
+          "description": "21 NYI - unk what it skips",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 231
+          },
+          "support": "nyi",
+          "confidence": "low"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 22,
+          "mask": "0x00400000",
+          "cmangos_enum": "SPELL_ATTR_EX5_NOT_ON_TRIVIAL",
+          "display_name": "Not On Trivial",
+          "description": "22",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 232
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 23,
+          "mask": "0x00800000",
+          "cmangos_enum": "SPELL_ATTR_EX5_NO_PARTIAL_RESISTS",
+          "display_name": "No Partial Resists",
+          "description": "23",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 233
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 24,
+          "mask": "0x01000000",
+          "cmangos_enum": "SPELL_ATTR_EX5_IGNORE_CASTER_REQUIREMENTS",
+          "display_name": "Ignore Caster Requirements",
+          "description": "24 NYI - unk what it skips",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 234
+          },
+          "support": "nyi",
+          "confidence": "low"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 25,
+          "mask": "0x02000000",
+          "cmangos_enum": "SPELL_ATTR_EX5_ALWAYS_LINE_OF_SIGHT",
+          "display_name": "Always Line Of Sight",
+          "description": "25",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 235
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 26,
+          "mask": "0x04000000",
+          "cmangos_enum": "SPELL_ATTR_EX5_ALWAYS_AOE_LINE_OF_SIGHT",
+          "display_name": "Always AOE Line Of Sight",
+          "description": "26",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 236
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 27,
+          "mask": "0x08000000",
+          "cmangos_enum": "SPELL_ATTR_EX5_NO_CASTER_AURA_ICON",
+          "display_name": "No Caster Aura Icon",
+          "description": "27",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 237
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 28,
+          "mask": "0x10000000",
+          "cmangos_enum": "SPELL_ATTR_EX5_NO_TARGET_AURA_ICON",
+          "display_name": "No Target Aura Icon",
+          "description": "28",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 238
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 29,
+          "mask": "0x20000000",
+          "cmangos_enum": "SPELL_ATTR_EX5_AURA_UNIQUE_PER_CASTER",
+          "display_name": "Aura Unique Per Caster",
+          "description": "29",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 239
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 30,
+          "mask": "0x40000000",
+          "cmangos_enum": "SPELL_ATTR_EX5_ALWAYS_SHOW_GROUND_TEXTURE",
+          "display_name": "Always Show Ground Texture",
+          "description": "30",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 240
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx5",
+          "bit_index": 31,
+          "mask": "0x80000000",
+          "cmangos_enum": "SPELL_ATTR_EX5_ADD_MELEE_HIT_RATING",
+          "display_name": "Add Melee Hit Rating",
+          "description": "31 Introduced in patch 2.3: Taunt, Growl, etc spells use ability miss calculation (see implementation for details)",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 241
+          },
+          "support": "supported",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "field": "AttributesEx6",
+      "core_enum": "SpellAttributesEx6",
+      "client_editable": true,
+      "width_bits": 32,
+      "attributes": [
+        {
+          "field": "AttributesEx6",
+          "bit_index": 0,
+          "mask": "0x00000001",
+          "cmangos_enum": "SPELL_ATTR_EX6_NO_COOLDOWN_ON_TOOLTIP",
+          "display_name": "No Cooldown On Tooltip",
+          "description": "0",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 246
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 1,
+          "mask": "0x00000002",
+          "cmangos_enum": "SPELL_ATTR_EX6_DO_NOT_RESET_COOLDOWN_IN_ARENA",
+          "display_name": "Do Not Reset Cooldown In Arena",
+          "description": "1 Unused in tbc",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 247
+          },
+          "support": "unused",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 2,
+          "mask": "0x00000004",
+          "cmangos_enum": "SPELL_ATTR_EX6_NOT_AN_ATTACK",
+          "display_name": "Not An Attack",
+          "description": "2 Likely has more meaning than just ignore caster auras",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 248
+          },
+          "support": "supported",
+          "confidence": "low"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 3,
+          "mask": "0x00000008",
+          "cmangos_enum": "SPELL_ATTR_EX6_CAN_ASSIST_IMMUNE_PC",
+          "display_name": "Can Assist Immune Pc",
+          "description": "3",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 249
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 4,
+          "mask": "0x00000010",
+          "cmangos_enum": "SPELL_ATTR_EX6_IGNORE_FOR_MOD_TIME_RATE",
+          "display_name": "Ignore For Mod Time Rate",
+          "description": "4 Unused in tbc",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 250
+          },
+          "support": "unused",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 5,
+          "mask": "0x00000020",
+          "cmangos_enum": "SPELL_ATTR_EX6_DO_NOT_CONSUME_RESOURCES",
+          "display_name": "Do Not Consume Resources",
+          "description": "5 Requires resources but doesnt consume them - ritual of summoning child spell consumes",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 251
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 6,
+          "mask": "0x00000040",
+          "cmangos_enum": "SPELL_ATTR_EX6_FLOATING_COMBAT_TEXT_ON_CAST",
+          "display_name": "Floating Combat Text On Cast",
+          "description": "6 Auras with this attribute trigger SPELL_CAST combat log event instead of SPELL_AURA_START (clientside attribute)",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 252
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 7,
+          "mask": "0x00000080",
+          "cmangos_enum": "SPELL_ATTR_EX6_AURA_IS_WEAPON_PROC",
+          "display_name": "Aura Is Weapon Proc",
+          "description": "7",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 253
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 8,
+          "mask": "0x00000100",
+          "cmangos_enum": "SPELL_ATTR_EX6_DO_NOT_CHAIN_TO_CROWD_CONTROLLED_TARGETS",
+          "display_name": "Do Not Chain To Crowd Controlled Targets",
+          "description": "8 ignores target with cc effects",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 254
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 9,
+          "mask": "0x00000200",
+          "cmangos_enum": "SPELL_ATTR_EX6_ALLOW_ON_CHARMED_TARGETS",
+          "display_name": "Allow On Charmed Targets",
+          "description": "9 Unused in tbc",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 255
+          },
+          "support": "unused",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 10,
+          "mask": "0x00000400",
+          "cmangos_enum": "SPELL_ATTR_EX6_NO_AURA_LOG",
+          "display_name": "No Aura Log",
+          "description": "10 Seems different in wotlk",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 256
+          },
+          "support": "supported",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 11,
+          "mask": "0x00000800",
+          "cmangos_enum": "SPELL_ATTR_EX6_NOT_IN_RAID_INSTANCES",
+          "display_name": "Not In Raid Instances",
+          "description": "11",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 257
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 12,
+          "mask": "0x00001000",
+          "cmangos_enum": "SPELL_ATTR_EX6_ALLOW_WHILE_RIDING_VEHICLE",
+          "display_name": "Allow While Riding Vehicle",
+          "description": "12 Unused in tbc",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 258
+          },
+          "support": "unused",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 13,
+          "mask": "0x00002000",
+          "cmangos_enum": "SPELL_ATTR_EX6_IGNORE_PHASE_SHIFT",
+          "display_name": "Ignore Phase Shift",
+          "description": "13 Can target in different phase",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 259
+          },
+          "support": "supported",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 14,
+          "mask": "0x00004000",
+          "cmangos_enum": "SPELL_ATTR_EX6_AI_PRIMARY_RANGED_ATTACK",
+          "display_name": "AI Primary Ranged Attack",
+          "description": "14 NYI - Likely global flag alternative to flagging spells as main in creature spell list",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 260
+          },
+          "support": "nyi",
+          "confidence": "low"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 15,
+          "mask": "0x00008000",
+          "cmangos_enum": "SPELL_ATTR_EX6_NO_PUSHBACK",
+          "display_name": "No Pushback",
+          "description": "15 Unused in tbc",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 261
+          },
+          "support": "unused",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 16,
+          "mask": "0x00010000",
+          "cmangos_enum": "SPELL_ATTR_EX6_NO_JUMP_PATHING",
+          "display_name": "No Jump Pathing",
+          "description": "16 Unused in tbc",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 262
+          },
+          "support": "unused",
+          "confidence": "medium"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 17,
+          "mask": "0x00020000",
+          "cmangos_enum": "SPELL_ATTR_EX6_ALLOW_EQUIP_WHILE_CASTING",
+          "display_name": "Allow Equip While Casting",
+          "description": "17",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 263
+          },
+          "support": "supported",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 18,
+          "mask": "0x00040000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 18)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 19,
+          "mask": "0x00080000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 19)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 20,
+          "mask": "0x00100000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 20)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 21,
+          "mask": "0x00200000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 21)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 22,
+          "mask": "0x00400000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 22)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 23,
+          "mask": "0x00800000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 23)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 24,
+          "mask": "0x01000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 24)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 25,
+          "mask": "0x02000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 25)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 26,
+          "mask": "0x04000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 26)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 27,
+          "mask": "0x08000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 27)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 28,
+          "mask": "0x10000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 28)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 29,
+          "mask": "0x20000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 29)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 30,
+          "mask": "0x40000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 30)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesEx6",
+          "bit_index": 31,
+          "mask": "0x80000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesEx6 bit 31)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        }
+      ]
+    },
+    {
+      "field": "AttributesServerside",
+      "core_enum": "SpellAttributesServerside",
+      "client_editable": false,
+      "width_bits": 32,
+      "attributes": [
+        {
+          "field": "AttributesServerside",
+          "bit_index": 0,
+          "mask": "0x00000001",
+          "cmangos_enum": "SPELL_ATTR_SS_PREVENT_INVIS",
+          "display_name": "Prevent Invis",
+          "description": "",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 268
+          },
+          "support": "server-only",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 1,
+          "mask": "0x00000002",
+          "cmangos_enum": "SPELL_ATTR_SS_AOE_CAP",
+          "display_name": "AOE Cap",
+          "description": "",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 269
+          },
+          "support": "server-only",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 2,
+          "mask": "0x00000004",
+          "cmangos_enum": "SPELL_ATTR_SS_IGNORE_EVADE",
+          "display_name": "Ignore Evade",
+          "description": "",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": 270
+          },
+          "support": "server-only",
+          "confidence": "high"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 3,
+          "mask": "0x00000008",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 3)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 4,
+          "mask": "0x00000010",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 4)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 5,
+          "mask": "0x00000020",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 5)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 6,
+          "mask": "0x00000040",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 6)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 7,
+          "mask": "0x00000080",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 7)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 8,
+          "mask": "0x00000100",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 8)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 9,
+          "mask": "0x00000200",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 9)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 10,
+          "mask": "0x00000400",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 10)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 11,
+          "mask": "0x00000800",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 11)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 12,
+          "mask": "0x00001000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 12)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 13,
+          "mask": "0x00002000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 13)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 14,
+          "mask": "0x00004000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 14)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 15,
+          "mask": "0x00008000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 15)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 16,
+          "mask": "0x00010000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 16)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 17,
+          "mask": "0x00020000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 17)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 18,
+          "mask": "0x00040000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 18)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 19,
+          "mask": "0x00080000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 19)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 20,
+          "mask": "0x00100000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 20)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 21,
+          "mask": "0x00200000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 21)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 22,
+          "mask": "0x00400000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 22)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 23,
+          "mask": "0x00800000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 23)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 24,
+          "mask": "0x01000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 24)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 25,
+          "mask": "0x02000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 25)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 26,
+          "mask": "0x04000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 26)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 27,
+          "mask": "0x08000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 27)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 28,
+          "mask": "0x10000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 28)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 29,
+          "mask": "0x20000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 29)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 30,
+          "mask": "0x40000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 30)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        },
+        {
+          "field": "AttributesServerside",
+          "bit_index": 31,
+          "mask": "0x80000000",
+          "cmangos_enum": null,
+          "display_name": "Unknown (SpellAttributesServerside bit 31)",
+          "description": "No named CMaNGOS enum value for this bit.",
+          "evidence": {
+            "repository": "https://github.com/Sparco6/MasterWoW-Project",
+            "commit": "f8bfd8a93929b245001b24d428a462227cd71952",
+            "path": "src/game/Spells/SpellDefines.h",
+            "line": null
+          },
+          "support": "unknown",
+          "confidence": "unknown"
+        }
+      ]
+    }
+  ]
+}

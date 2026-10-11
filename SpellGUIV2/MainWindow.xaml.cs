@@ -272,117 +272,14 @@ namespace SpellEditor
         #region LanguageSwitch
         private void RefreshAllUIElements()
         {
-            Attributes1.Children.Clear();
-            attributes0.Clear();
-            string[] attFlags = SafeTryFindResource("attFlags_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes1.Children.Add(box);
-                attributes0.Add(box);
-            }
-
-            Attributes2.Children.Clear();
-            attributes1.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes2.Children.Add(box);
-                attributes1.Add(box);
-            }
-
-            Attributes3.Children.Clear();
-            attributes2.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx1_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes3.Children.Add(box);
-                attributes2.Add(box);
-            }
-
-            Attributes4.Children.Clear();
-            attributes3.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx2_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes4.Children.Add(box);
-                attributes3.Add(box);
-            }
-
-            Attributes5.Children.Clear();
-            attributes4.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx3_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes5.Children.Add(box);
-                attributes4.Add(box);
-            }
-
-            Attributes6.Children.Clear();
-            attributes5.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx4_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes6.Children.Add(box);
-                attributes5.Add(box);
-            }
-
-            Attributes7.Children.Clear();
-            attributes6.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx5_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes7.Children.Add(box);
-                attributes6.Add(box);
-            }
-
-            Attributes8.Children.Clear();
-            attributes7.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx6_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes8.Children.Add(box);
-                attributes7.Add(box);
-            }
+            BuildAttributeBoxes(Attributes1, attributes0, "Attributes", "attFlags_strings");
+            BuildAttributeBoxes(Attributes2, attributes1, "AttributesEx", "attFlagsEx_strings");
+            BuildAttributeBoxes(Attributes3, attributes2, "AttributesEx2", "attFlagsEx1_strings");
+            BuildAttributeBoxes(Attributes4, attributes3, "AttributesEx3", "attFlagsEx2_strings");
+            BuildAttributeBoxes(Attributes5, attributes4, "AttributesEx4", "attFlagsEx3_strings");
+            BuildAttributeBoxes(Attributes6, attributes5, "AttributesEx5", "attFlagsEx4_strings");
+            BuildAttributeBoxes(Attributes7, attributes6, "AttributesEx6", "attFlagsEx5_strings");
+            BuildAttributeBoxes(Attributes8, attributes7, "AttributesEx7", "attFlagsEx6_strings");
 
             // From spell_custom_attr rather than the DBC, see SaveCustomAttributes
             RefreshCustomAttributeBoxes();
@@ -606,6 +503,42 @@ namespace SpellEditor
             SpellFamilyName.Items.Clear();
             SpellFamilyName.ItemsSource = SpellFamilyNames.familyNamesitemSource;
             SpellFamilyName.SelectedIndex = 0;
+        }
+
+        private void BuildAttributeBoxes(Panel panel, List<ThreadSafeCheckBox> boxes, string field, string resourceKey)
+        {
+            panel.Children.Clear();
+            boxes.Clear();
+
+            var catalogEntries = SpellAttributeCatalog.ForField(field);
+            if (catalogEntries != null)
+            {
+                foreach (var entry in catalogEntries.OrderBy(entry => entry.BitIndex))
+                {
+                    var box = new ThreadSafeCheckBox
+                    {
+                        Content = entry.DisplayName,
+                        ToolTip = entry.Tooltip,
+                        Tag = entry.BitIndex,
+                        Margin = new Thickness(0, 5, 0, 0)
+                    };
+                    panel.Children.Add(box);
+                    boxes.Add(box);
+                }
+                return;
+            }
+
+            foreach (var label in SafeTryFindResource(resourceKey).Split('|'))
+            {
+                var box = new ThreadSafeCheckBox
+                {
+                    Content = label,
+                    ToolTip = label,
+                    Margin = new Thickness(0, 5, 0, 0)
+                };
+                panel.Children.Add(box);
+                boxes.Add(box);
+            }
         }
 
         #endregion
@@ -5157,7 +5090,8 @@ namespace SpellEditor
             EmulatorIntegrationInstance?.RemoveTabs();
             EmulatorIntegrationInstance = null;
             loadedCustomAttributes = null;
-            RefreshCustomAttributeBoxes();
+            // Attribute labels are version/core-specific as well as the world database tabs.
+            RefreshAllUIElements();
             UpdateEmulatorTabVisibility();
             EmulatorIntegrationInstance?.SetSpell(_selectedID);
             _ = RefreshCustomAttributesAsync(_selectedID);
