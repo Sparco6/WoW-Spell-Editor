@@ -123,6 +123,12 @@ The TBC integration was checked against the active MasterWoW loader queries and 
 `spell_threat`, and the separately labelled server `spell_template` record. Tabs are shown only
 when the connected database actually contains the table.
 
+The TBC effect editor is version bounded by the inspected CMaNGOS TBC definitions: spell effects
+are offered only for ids 0-153, aura types for ids 0-261, and implicit targets for ids 0-93.
+WotLK-only values are therefore not selectable while authoring a TBC spell. If an imported record
+already contains an out-of-version value, the editor labels it unsupported and preserves its exact
+number instead of silently replacing it with zero.
+
 Every tab can create a missing row for the selected spell without writing until **Save** is used.
 The `spell_template` Add action initializes its TBC fields from the selected client Spell.dbc row,
 but keeps the server record separate and exposes `IsServerSide` and `AttributesServerside` for an

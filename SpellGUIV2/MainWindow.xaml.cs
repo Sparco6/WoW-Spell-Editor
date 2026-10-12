@@ -105,6 +105,9 @@ namespace SpellEditor
         private FilteredComboBox[] spellEffectTypeBoxes;
         private ThreadSafeTextBox[] effectMultipleValueBoxes;
         private FilteredComboBox[] effectAuraNameBoxes;
+        private List<string> versionedSpellEffectEntries = new List<string>();
+        private List<string> versionedAuraEntries = new List<string>();
+        private List<string> versionedTargetEntries = new List<string>();
         private ThreadSafeTextBox[] effectChainTargetBoxes;
         private ThreadSafeTextBox[] effectItemTypeBoxes;
         private UIntTextBox[] effectTriggerSpellBoxes;
@@ -160,6 +163,30 @@ namespace SpellEditor
         private void VerifyStaticData()
         {
             MiscValueConstants.VerifyData();
+        }
+
+        /// <summary>
+        /// Rebuilds a version-limited enum before selecting its value. A malformed or foreign-version
+        /// value already present in a DBC remains visible and round-trippable, but is clearly marked
+        /// and is never offered while authoring a normal TBC spell.
+        /// </summary>
+        private static uint GetNumberPrefix(ThreadSafeComboBox box)
+        {
+            var text = (box.SelectedItem?.ToString() ?? box.Text ?? string.Empty).TrimStart();
+            var digits = new string(text.TakeWhile(char.IsDigit).ToArray());
+            return uint.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : 0;
+        }
+
+        private static void SetVersionedEnumValue(ThreadSafeComboBox box, IReadOnlyList<string> supported,
+            uint value, string valueKind)
+        {
+            var entries = new List<string>(supported ?? Array.Empty<string>());
+            var prefix = value.ToString(CultureInfo.InvariantCulture) + " - ";
+            if (!entries.Any(entry => entry.StartsWith(prefix, StringComparison.Ordinal)))
+                entries.Add($"{value} - Unsupported {valueKind} for the selected WoW version (preserved)");
+
+            box.ItemsSource = entries;
+            box.ThreadSafeIndex = entries.FindIndex(entry => entry.StartsWith(prefix, StringComparison.Ordinal));
         }
 
         public MainWindow()
@@ -285,7 +312,9 @@ namespace SpellEditor
             RefreshCustomAttributeBoxes();
 
             CasterAuraState.Items.Clear();
-            string[] caster_aura_state_strings = SafeTryFindResource("aura_state_strings").Split('|');
+            string[] caster_aura_state_strings = WoWVersionManager.GetInstance().SelectedVersion().Identity == 243
+                ? new[] { "None", "Defense", "Health below 20%", "Berserking", "Frozen", "Judgement", "Unused 6", "Hunter parry / Rogue stealth attack", "Unused 8", "Unused 9", "Victory Rush / Hunter critical strike", "Critical", "Faerie Fire", "Health below 35%", "Conflagrate", "Swiftmend", "Deadly Poison", "Forbearance", "Weakened Soul", "Hypothermia" }
+                : SafeTryFindResource("aura_state_strings").Split('|');
             foreach (string casterAuraState in caster_aura_state_strings) { CasterAuraState.Items.Add(casterAuraState); }
 
             TargetAuraState.Items.Clear();
@@ -334,6 +363,8 @@ namespace SpellEditor
             PowerType.Items.Clear();
 
             string[] power_type_strings = SafeTryFindResource("power_type_strings").Split('|');
+            if (WoWVersionManager.GetInstance().SelectedVersion().Identity == 243)
+                power_type_strings = power_type_strings.Take(5).Concat(new[] { "Health" }).ToArray();
             foreach (string powerString in power_type_strings) { PowerType.Items.Add(powerString); }
 
             SpellDamageType.Items.Clear();
@@ -388,11 +419,15 @@ namespace SpellEditor
 
 
             string[] spell_aura_effect_names = SafeTryFindResource("spell_aura_effect_names").Split('|');
-            string[] comboEntries = new string[spell_aura_effect_names.Length];
-            for (int i = 0; i < spell_aura_effect_names.Length; ++i)
+            var auraCount = WoWVersionManager.GetInstance().SelectedVersion().Identity == 243
+                ? Math.Min(262, spell_aura_effect_names.Length)
+                : spell_aura_effect_names.Length;
+            string[] comboEntries = new string[auraCount];
+            for (int i = 0; i < auraCount; ++i)
             {
                 comboEntries[i] = i + " - " + spell_aura_effect_names[i];
             }
+            versionedAuraEntries = new List<string>(comboEntries);
             ApplyAuraName1.ItemsSource = new List<string>(comboEntries);
             ApplyAuraName2.ItemsSource = new List<string>(comboEntries);
             ApplyAuraName3.ItemsSource = new List<string>(comboEntries);
@@ -400,11 +435,22 @@ namespace SpellEditor
             FilterAuraCombo.ItemsSource = new List<string>(comboEntries);
 
             string[] spell_effect_names = SafeTryFindResource("spell_effect_names_clear").Split('|');
-            comboEntries = new string[spell_effect_names.Length];
-            for (int i = 0; i < spell_effect_names.Length; ++i)
+            var effectCount = WoWVersionManager.GetInstance().SelectedVersion().Identity == 243
+                ? Math.Min(154, spell_effect_names.Length)
+                : spell_effect_names.Length;
+            comboEntries = new string[effectCount];
+            for (int i = 0; i < effectCount; ++i)
             {
-                comboEntries[i] = i + " - " + spell_effect_names[i];
+                var displayName = spell_effect_names[i].Trim();
+                if (WoWVersionManager.GetInstance().SelectedVersion().Identity == 243)
+                {
+                    var wotlk = displayName.IndexOf("WOTLK", StringComparison.OrdinalIgnoreCase);
+                    if (wotlk >= 0)
+                        displayName = displayName.Substring(0, wotlk).Trim().TrimEnd(',', ':');
+                }
+                comboEntries[i] = i + " - " + displayName;
             }
+            versionedSpellEffectEntries = new List<string>(comboEntries);
             SpellEffect1.ItemsSource = new List<string>(comboEntries);
             SpellEffect2.ItemsSource = new List<string>(comboEntries);
             SpellEffect3.ItemsSource = new List<string>(comboEntries);
@@ -415,16 +461,17 @@ namespace SpellEditor
             Mechanic2.Items.Clear();
             Mechanic3.Items.Clear();
 
-            if (TargetA1.Items.Count == 0)
             {
-                int number = 0;
                 var comboList = new List<string>();
                 foreach (Targets t in System.Enum.GetValues(typeof(Targets)))
                 {
-                    comboList.Add(number + " - " + t);
-                    ++number;
+                    var value = (int)t;
+                    if (WoWVersionManager.GetInstance().SelectedVersion().Identity == 243 && value >= 94)
+                        continue;
+                    comboList.Add(value + " - " + t);
                 }
 
+                versionedTargetEntries = new List<string>(comboList);
                 TargetA1.ItemsSource = new List<string>(comboList);
                 TargetB1.ItemsSource = new List<string>(comboList);
                 TargetA2.ItemsSource = new List<string>(comboList);
@@ -1914,7 +1961,8 @@ namespace SpellEditor
                     row["BaseLevel"] = uint.Parse(BaseLevel.Text);
                     row["SpellLevel"] = uint.Parse(SpellLevel.Text);
                     // Handle 'Health' power type manually
-                    row["PowerType"] = PowerType.SelectedIndex == 13 ? (uint.MaxValue - 1) : (uint)PowerType.SelectedIndex;
+                    var healthPowerIndex = WoWVersionManager.GetInstance().SelectedVersion().Identity == 243 ? 5 : 13;
+                    row["PowerType"] = PowerType.SelectedIndex == healthPowerIndex ? (uint.MaxValue - 1) : (uint)PowerType.SelectedIndex;
                     row["ManaCost"] = uint.Parse(PowerCost.Text);
                     row["ManaCostPerLevel"] = uint.Parse(ManaCostPerLevel.Text);
                     row["ManaPerSecond"] = uint.Parse(ManaCostPerSecond.Text);
@@ -1993,12 +2041,12 @@ namespace SpellEditor
                     row["EffectMechanic1"] = (uint)Mechanic1.SelectedIndex;
                     row["EffectMechanic2"] = (uint)Mechanic2.SelectedIndex;
                     row["EffectMechanic3"] = (uint)Mechanic3.SelectedIndex;
-                    row["EffectImplicitTargetA1"] = (uint)TargetA1.SelectedIndex;
-                    row["EffectImplicitTargetA2"] = (uint)TargetA2.SelectedIndex;
-                    row["EffectImplicitTargetA3"] = (uint)TargetA3.SelectedIndex;
-                    row["EffectImplicitTargetB1"] = (uint)TargetB1.SelectedIndex;
-                    row["EffectImplicitTargetB2"] = (uint)TargetB2.SelectedIndex;
-                    row["EffectImplicitTargetB3"] = (uint)TargetB3.SelectedIndex;
+                    row["EffectImplicitTargetA1"] = GetNumberPrefix(TargetA1);
+                    row["EffectImplicitTargetA2"] = GetNumberPrefix(TargetA2);
+                    row["EffectImplicitTargetA3"] = GetNumberPrefix(TargetA3);
+                    row["EffectImplicitTargetB1"] = GetNumberPrefix(TargetB1);
+                    row["EffectImplicitTargetB2"] = GetNumberPrefix(TargetB2);
+                    row["EffectImplicitTargetB3"] = GetNumberPrefix(TargetB3);
                     row["EffectApplyAuraName1"] = ApplyAuraName1.GetNumberPrefixFromText();
                     row["EffectApplyAuraName2"] = ApplyAuraName2.GetNumberPrefixFromText();
                     row["EffectApplyAuraName3"] = ApplyAuraName3.GetNumberPrefixFromText();
@@ -3588,7 +3636,7 @@ namespace SpellEditor
                 uint powerType = uint.Parse(row["PowerType"].ToString());
                 // Manually handle 'Health' power type
                 if (powerType == (uint.MaxValue - 1))
-                    powerType = 13;
+                    powerType = WoWVersionManager.GetInstance().SelectedVersion().Identity == 243 ? 5u : 13u;
                 PowerType.ThreadSafeIndex = powerType;
                 PowerCost.ThreadSafeText = uint.Parse(row["ManaCost"].ToString());
                 ManaCostPerLevel.ThreadSafeText = uint.Parse(row["ManaCostPerLevel"].ToString());
@@ -3695,9 +3743,9 @@ namespace SpellEditor
                     }
                 }
                 updateProgress("Updating effects 1-3...");
-                SpellEffect1.SetTextFromIndex(uint.Parse(row["Effect1"].ToString()));
-                SpellEffect2.SetTextFromIndex(uint.Parse(row["Effect2"].ToString()));
-                SpellEffect3.SetTextFromIndex(uint.Parse(row["Effect3"].ToString()));
+                SetVersionedEnumValue(SpellEffect1, versionedSpellEffectEntries, uint.Parse(row["Effect1"].ToString()), "spell effect");
+                SetVersionedEnumValue(SpellEffect2, versionedSpellEffectEntries, uint.Parse(row["Effect2"].ToString()), "spell effect");
+                SetVersionedEnumValue(SpellEffect3, versionedSpellEffectEntries, uint.Parse(row["Effect3"].ToString()), "spell effect");
                 GenerateSpellEffectHeader(1);
                 GenerateSpellEffectHeader(2);
                 GenerateSpellEffectHeader(3);
@@ -3714,12 +3762,12 @@ namespace SpellEditor
                 Mechanic1.ThreadSafeIndex = int.Parse(row["EffectMechanic1"].ToString());
                 Mechanic2.ThreadSafeIndex = int.Parse(row["EffectMechanic2"].ToString());
                 Mechanic3.ThreadSafeIndex = int.Parse(row["EffectMechanic3"].ToString());
-                TargetA1.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetA1"].ToString());
-                TargetA2.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetA2"].ToString());
-                TargetA3.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetA3"].ToString());
-                TargetB1.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetB1"].ToString());
-                TargetB2.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetB2"].ToString());
-                TargetB3.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetB3"].ToString());
+                SetVersionedEnumValue(TargetA1, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetA1"].ToString()), "implicit target");
+                SetVersionedEnumValue(TargetA2, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetA2"].ToString()), "implicit target");
+                SetVersionedEnumValue(TargetA3, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetA3"].ToString()), "implicit target");
+                SetVersionedEnumValue(TargetB1, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetB1"].ToString()), "implicit target");
+                SetVersionedEnumValue(TargetB2, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetB2"].ToString()), "implicit target");
+                SetVersionedEnumValue(TargetB3, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetB3"].ToString()), "implicit target");
 
                 updateProgress("Updating radius index...");
                 var loadRadiuses = (SpellRadius)DBCManager.GetInstance().FindDbcForBinding("SpellRadius");
@@ -3731,9 +3779,9 @@ namespace SpellEditor
                 RadiusIndex3.ThreadSafeIndex = loadRadiuses.UpdateRadiusIndexes(IDs[2]);
 
                 updateProgress("Updating effect 1-3 data...");
-                ApplyAuraName1.SetTextFromIndex(uint.Parse(row["EffectApplyAuraName1"].ToString()));
-                ApplyAuraName2.SetTextFromIndex(uint.Parse(row["EffectApplyAuraName2"].ToString()));
-                ApplyAuraName3.SetTextFromIndex(uint.Parse(row["EffectApplyAuraName3"].ToString()));
+                SetVersionedEnumValue(ApplyAuraName1, versionedAuraEntries, uint.Parse(row["EffectApplyAuraName1"].ToString()), "aura type");
+                SetVersionedEnumValue(ApplyAuraName2, versionedAuraEntries, uint.Parse(row["EffectApplyAuraName2"].ToString()), "aura type");
+                SetVersionedEnumValue(ApplyAuraName3, versionedAuraEntries, uint.Parse(row["EffectApplyAuraName3"].ToString()), "aura type");
                 Amplitude1.ThreadSafeText = row["EffectAmplitude1"].ToString();
                 Amplitude2.ThreadSafeText = row["EffectAmplitude2"].ToString();
                 Amplitude3.ThreadSafeText = row["EffectAmplitude3"].ToString();
@@ -6227,14 +6275,14 @@ namespace SpellEditor
             updating = true;
             try
             {
-                spellEffectTypeBoxes[i].SetTextFromIndex((uint)effectType);
-                effectAuraNameBoxes[i].SetTextFromIndex((uint)auraType);
+                SetVersionedEnumValue(spellEffectTypeBoxes[i], versionedSpellEffectEntries, (uint)effectType, "spell effect");
+                SetVersionedEnumValue(effectAuraNameBoxes[i], versionedAuraEntries, (uint)auraType, "aura type");
                 dieSides[i].ThreadSafeText = read("EffectDieSides");
                 pointsPerLevel[i].ThreadSafeText = read("EffectRealPointsPerLevel");
                 basePoints[i].ThreadSafeText = read("EffectBasePoints");
                 mechanics[i].ThreadSafeIndex = int.Parse(read("EffectMechanic"));
-                targetsA[i].ThreadSafeIndex = int.Parse(read("EffectImplicitTargetA"));
-                targetsB[i].ThreadSafeIndex = int.Parse(read("EffectImplicitTargetB"));
+                SetVersionedEnumValue(targetsA[i], versionedTargetEntries, uint.Parse(read("EffectImplicitTargetA")), "implicit target");
+                SetVersionedEnumValue(targetsB[i], versionedTargetEntries, uint.Parse(read("EffectImplicitTargetB")), "implicit target");
 
                 var loadRadiuses = (SpellRadius)DBCManager.GetInstance().FindDbcForBinding("SpellRadius");
                 radiuses[i].ThreadSafeIndex = loadRadiuses.UpdateRadiusIndexes(uint.Parse(read("EffectRadiusIndex")));
