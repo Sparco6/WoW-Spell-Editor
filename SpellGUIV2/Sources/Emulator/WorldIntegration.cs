@@ -9,7 +9,7 @@ using System.Windows.Controls;
 namespace SpellEditor.Sources.Emulator
 {
     /// <summary>
-    /// Puts the world tables of the selected emulator into the main tab strip and owns the
+    /// Puts the world tables of the selected emulator behind one compact main tab and owns the
     /// connection. One instance per emulator, MainWindow throws it away when the setting changes.
     /// </summary>
     public class WorldIntegration
@@ -18,8 +18,12 @@ namespace SpellEditor.Sources.Emulator
 
         private readonly MainWindow _mainWindow;
         private readonly TabControl _host;
-        private readonly List<TabItem> _tabs = new List<TabItem>();
         private readonly List<WorldTableEditor> _editors = new List<WorldTableEditor>();
+
+        private TabItem _tab;
+        private ComboBox _tableSelector;
+        private ContentControl _editorHost;
+        private bool _updatingSelector;
 
         private readonly object _connectLock = new object();
 
@@ -40,18 +44,21 @@ namespace SpellEditor.Sources.Emulator
             Emulator = emulator;
         }
 
-        public bool Owns(object tab) => tab is TabItem item && _tabs.Contains(item);
+        public bool Owns(object tab) => ReferenceEquals(tab, _tab);
 
         /// <summary>Drops the tabs off the strip so a fresh integration can take over.</summary>
         public void RemoveTabs()
         {
-            // Step off our tabs first, removing the selected one would activate the next of ours
-            if (_host.SelectedItem is TabItem selected && _tabs.Contains(selected))
+            // Step off our tab first, removing the selected one would leave the host in an
+            // inconsistent selection state.
+            if (ReferenceEquals(_host.SelectedItem, _tab))
                 _host.SelectedIndex = 0;
 
-            foreach (var tab in _tabs)
-                _host.Items.Remove(tab);
-            _tabs.Clear();
+            if (_tab != null)
+                _host.Items.Remove(_tab);
+            _tab = null;
+            _tableSelector = null;
+            _editorHost = null;
             _editors.Clear();
             _database = null;
             _probedTables = false;
@@ -67,24 +74,24 @@ namespace SpellEditor.Sources.Emulator
         {
             if (!WorldDatabase.IsConfigured || !_spellSelected)
             {
-                foreach (var tab in _tabs)
-                    tab.Visibility = Visibility.Collapsed;
-                if (_host.SelectedItem is TabItem selected && _tabs.Contains(selected))
+                if (_tab != null)
+                    _tab.Visibility = Visibility.Collapsed;
+                if (ReferenceEquals(_host.SelectedItem, _tab))
                     _host.SelectedIndex = 0;
                 return;
             }
 
-            if (_tabs.Count == 0)
-                BuildTabs();
+            if (_tab == null)
+                BuildTab();
 
-            foreach (var tab in _tabs)
-                tab.Visibility = IsAvailable(tab) ? Visibility.Visible : Visibility.Collapsed;
+            PopulateSelector();
+            _tab.Visibility = SelectedEditor != null ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        private bool IsAvailable(TabItem tab) =>
-            !_missingTables.Contains(((WorldTable)tab.Tag).Name, StringComparer.OrdinalIgnoreCase);
+        private bool IsAvailable(WorldTable table) =>
+            !_missingTables.Contains(table.Name, StringComparer.OrdinalIgnoreCase);
 
-        private void BuildTabs()
+        private void BuildTab()
         {
             foreach (var table in Emulator.Tables)
             {
@@ -93,22 +100,112 @@ namespace SpellEditor.Sources.Emulator
                 editor.SetDatabase(_database);
                 editor.Saved += () => InvalidateOthers(editor);
                 _editors.Add(editor);
-
-                var tab = new TabItem
-                {
-                    Header = table.Header,
-                    Content = editor,
-                    Tag = table
-                };
-                _tabs.Add(tab);
-                _host.Items.Add(tab);
             }
+
+            _tableSelector = new ComboBox
+            {
+                MinWidth = 280,
+                MaxWidth = 520,
+                Margin = new Thickness(8, 4, 8, 4),
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+            _tableSelector.SelectionChanged += TableSelector_SelectionChanged;
+
+            var refreshButton = new Button
+            {
+                Content = Localise("emu_open_refresh", "OPEN / REFRESH"),
+                MinWidth = 125,
+                Margin = new Thickness(0, 4, 8, 4),
+                Padding = new Thickness(12, 3, 12, 3)
+            };
+            refreshButton.Click += (sender, args) => Activate(_tab);
+
+            var bar = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+            bar.Children.Add(new TextBlock
+            {
+                Text = Localise("emu_table_selector", "Server spell data:"),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(8, 4, 0, 4)
+            });
+            bar.Children.Add(_tableSelector);
+            bar.Children.Add(refreshButton);
+
+            _editorHost = new ContentControl();
+            var panel = new DockPanel();
+            DockPanel.SetDock(bar, Dock.Top);
+            panel.Children.Add(bar);
+            panel.Children.Add(_editorHost);
+
+            _tab = new TabItem
+            {
+                Header = Localise("emu_server_db_tab", "Server DB"),
+                Content = panel
+            };
+            _host.Items.Add(_tab);
+        }
+
+        private WorldTable SelectedTable => (_tableSelector?.SelectedItem as ComboBoxItem)?.Tag as WorldTable;
+
+        private WorldTableEditor SelectedEditor
+        {
+            get
+            {
+                var table = SelectedTable;
+                return table == null ? null : _editors.FirstOrDefault(editor => ReferenceEquals(editor.Table, table));
+            }
+        }
+
+        private void PopulateSelector()
+        {
+            if (_tableSelector == null)
+                return;
+
+            var selectedName = SelectedTable?.Name;
+            _updatingSelector = true;
+            _tableSelector.Items.Clear();
+            foreach (var table in Emulator.Tables.Where(IsAvailable))
+            {
+                _tableSelector.Items.Add(new ComboBoxItem
+                {
+                    Content = table.Header,
+                    Tag = table
+                });
+            }
+
+            var selected = _tableSelector.Items.OfType<ComboBoxItem>()
+                .FirstOrDefault(item => string.Equals(((WorldTable)item.Tag).Name, selectedName,
+                    StringComparison.OrdinalIgnoreCase));
+            _tableSelector.SelectedItem = selected ?? _tableSelector.Items.OfType<ComboBoxItem>().FirstOrDefault();
+            _updatingSelector = false;
+            ShowSelectedEditor();
+        }
+
+        private void TableSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_updatingSelector)
+                return;
+
+            ShowSelectedEditor();
+            if (ReferenceEquals(_host.SelectedItem, _tab))
+                Activate(_tab);
+        }
+
+        private void ShowSelectedEditor()
+        {
+            if (_editorHost != null)
+                _editorHost.Content = SelectedEditor;
         }
 
         public async void Activate(object tab)
         {
-            if (!(tab is TabItem item) || !(item.Content is WorldTableEditor editor))
+            if (!ReferenceEquals(tab, _tab) || SelectedEditor == null)
                 return;
+
+            var editor = SelectedEditor;
 
             if (!WorldDatabase.IsConfigured)
             {
@@ -122,6 +219,11 @@ namespace SpellEditor.Sources.Emulator
             {
                 await ConnectAsync(editor);
                 if (_database == null)
+                    return;
+
+                // Probing may remove a missing table and select the next available editor.
+                editor = SelectedEditor;
+                if (editor == null)
                     return;
             }
 
@@ -174,15 +276,15 @@ namespace SpellEditor.Sources.Emulator
                 editor.SetSpell(spellId);
 
             // The rest catch up when they are opened
-            if (_database != null && _host.SelectedItem is TabItem selected && _tabs.Contains(selected) &&
-                selected.Content is WorldTableEditor editor2)
-                editor2.Refresh(spellId);
+            if (_database != null && ReferenceEquals(_host.SelectedItem, _tab))
+                SelectedEditor?.Refresh(spellId);
         }
 
         public void RefreshLocalisation()
         {
-            foreach (var tab in _tabs)
-                tab.Header = ((WorldTable)tab.Tag).Header;
+            if (_tab != null)
+                _tab.Header = Localise("emu_server_db_tab", "Server DB");
+            PopulateSelector();
             foreach (var editor in _editors)
                 editor.RefreshLocalisation();
         }
