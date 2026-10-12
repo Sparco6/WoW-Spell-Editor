@@ -45,6 +45,13 @@ The TBC `SpellVisual.dbc` binding contains 25 fields. Its graph exposes 11 kit l
 The TBC `SpellVisualKit.dbc` binding contains 12 effect slots. TBC does not serialize the WotLK-only
 `PersistentAreaKit`, missile cast/impact offsets, `SpellMissile.dbc`, `SpellMissileMotion.dbc`, or
 model-attachment fields. Visual creation and cloning use the active binding's explicit columns.
+The Visual Base tab provides a searchable SpellVisual ID selector with separate **Load** and
+**Use for spell** actions. **Clone** creates an independent TBC graph: a new SpellVisual record,
+new copies of every referenced SpellVisualKit, and new copies of their referenced
+SpellVisualEffectName records. This avoids modifying Blizzard visuals shared by other spells.
+Linking remains an explicit spell edit and is persisted only by **Save Spell Changes**. In TBC mode
+the Motion tab, model-attachment editor, WotLK-only effect scale limits, and missile offset fields
+are hidden and are never serialized.
 
 The supplied active client directory did not contain `SpellVisualKit.dbc`,
 `SpellVisualEffectName.dbc`, `AnimationData.dbc`, or the other supporting visual DBCs. The available

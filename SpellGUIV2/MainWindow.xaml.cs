@@ -254,7 +254,31 @@ namespace SpellEditor
             miscValueDynamicContentsB = new[] { MiscValueB1DynamicContent, MiscValueB2DynamicContent, MiscValueB3DynamicContent };
             spellEditorTabs = new[] { BaseTab, Effects1Tab, Effects2Tab, ItemsTab, FlagsTab, IconTab, ReqsTab, VisualTab };
 
+            ConfigureVisualVersionUi();
+
             UpdateSpellTabVisibility();
+        }
+
+        private void ConfigureVisualVersionUi()
+        {
+            var wotlk = WoWVersionManager.IsWotlkOrGreaterSelected;
+            VisualMotionTab.Visibility = wotlk ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var element in new UIElement[]
+            {
+                VisualMissileCastOffsetXLabel, VisualMissileCastOffsetXTxt,
+                VisualMissileCastOffsetYLabel, VisualMissileCastOffsetYTxt,
+                VisualMissileCastOffsetZLabel, VisualMissileCastOffsetZTxt,
+                VisualMissileImpactOffsetXLabel, VisualMissileImpactOffsetXTxt,
+                VisualMissileImpactOffsetYLabel, VisualMissileImpactOffsetYTxt,
+                VisualMissileImpactOffsetZLabel, VisualMissileImpactOffsetZTxt,
+                VisualEffectMinAllowedScaleLabel, VisualEffectMinAllowedScaleTxt,
+                VisualEffectMaxAllowedScaleLabel, VisualEffectMaxAllowedScaleTxt
+            })
+                element.Visibility = wotlk ? Visibility.Visible : Visibility.Collapsed;
+
+            // SpellVisualKitModelAttach is a WotLK table. Collapse its editor columns in TBC.
+            VisualKitEffectEditorGrid.ColumnDefinitions[2].Width = wotlk ? GridLength.Auto : new GridLength(0);
+            VisualKitEffectEditorGrid.ColumnDefinitions[3].Width = wotlk ? GridLength.Auto : new GridLength(0);
         }
 
         ~MainWindow()
@@ -3975,7 +3999,9 @@ namespace SpellEditor
         #region VisualTab
         private void UpdateSpellVisualTab(uint selectedId, uint selectedKit = 0, bool forceRefresh = false)
         {
+            EnsureVisualIdChoices();
             SelectedVisualPath.Content = selectedId.ToString();
+            VisualSelectIdTxt.Text = selectedId.ToString(CultureInfo.InvariantCulture);
             if (!forceRefresh && 
                 _currentVisualController?.VisualId == selectedId && 
                 _currentVisualController?.NextLoadAttachmentId == 0)
@@ -5061,6 +5087,129 @@ namespace SpellEditor
             GetDBAdapter().Execute($"UPDATE spell SET SpellVisual1 = {newId} WHERE ID = {selectedID}");
             UpdateSpellVisualTab(newId, 0);
             ShowFlyoutMessage($"Created new SpellVisual record {newId}.");
+        }
+
+        private void VisualLoad_Click(object sender, RoutedEventArgs e)
+        {
+            var visualId = GetNumberPrefix(VisualSelectIdTxt);
+            if (visualId == 0)
+            {
+                ShowFlyoutMessage("Enter a valid SpellVisual ID.");
+                return;
+            }
+            using (var result = adapter.Query($"SELECT ID FROM spellvisual WHERE ID = {visualId}"))
+            {
+                if (result == null || result.Rows.Count == 0)
+                {
+                    ShowFlyoutMessage($"SpellVisual {visualId} does not exist in the imported TBC DBC data.");
+                    return;
+                }
+            }
+            UpdateSpellVisualTab(visualId, 0, true);
+        }
+
+        private void VisualUse_Click(object sender, RoutedEventArgs e)
+        {
+            var visualId = GetNumberPrefix(VisualSelectIdTxt);
+            if (selectedID == 0 || visualId == 0)
+                return;
+            using (var result = adapter.Query($"SELECT ID FROM spellvisual WHERE ID = {visualId}"))
+            {
+                if (result == null || result.Rows.Count == 0)
+                {
+                    ShowFlyoutMessage($"SpellVisual {visualId} does not exist.");
+                    return;
+                }
+            }
+            SpellVisual1.ThreadSafeText = visualId.ToString(CultureInfo.InvariantCulture);
+            UpdateSpellVisualTab(visualId, 0, true);
+            ShowFlyoutMessage($"SpellVisual {visualId} selected. Use Save Spell Changes to store it on spell {selectedID}.");
+        }
+
+        private void VisualClone_Click(object sender, RoutedEventArgs e)
+        {
+            var sourceVisualId = GetNumberPrefix(VisualSelectIdTxt);
+            if (sourceVisualId == 0)
+                return;
+            var newVisualId = CloneVisualGraph(sourceVisualId);
+            if (newVisualId == 0)
+                return;
+            SpellVisual1.ThreadSafeText = newVisualId.ToString(CultureInfo.InvariantCulture);
+            UpdateSpellVisualTab(newVisualId, 0, true);
+            ShowFlyoutMessage($"Cloned SpellVisual {sourceVisualId} to independent visual {newVisualId}. Use Save Spell Changes to link it to spell {selectedID}.");
+        }
+
+        private uint CloneVisualGraph(uint sourceVisualId)
+        {
+            using (var visualResults = adapter.Query($"SELECT * FROM spellvisual WHERE ID = {sourceVisualId}"))
+            {
+                if (visualResults == null || visualResults.Rows.Count == 0)
+                {
+                    ShowFlyoutMessage($"SpellVisual {sourceVisualId} does not exist.");
+                    return 0;
+                }
+
+                var visualRow = visualResults.Rows[0];
+                var newVisualId = NextVisualTableId("spellvisual");
+                visualRow["ID"] = newVisualId;
+                var effectCopies = new Dictionary<uint, uint>();
+                foreach (var kitField in WoWVersionManager.GetInstance().LookupKeyResource().KitColumnKeys)
+                {
+                    if (!uint.TryParse(visualRow[kitField].ToString(), out var sourceKitId) || sourceKitId == 0)
+                        continue;
+                    using (var kitResults = adapter.Query($"SELECT * FROM spellvisualkit WHERE ID = {sourceKitId}"))
+                    {
+                        if (kitResults == null || kitResults.Rows.Count == 0)
+                            continue;
+                        var kitRow = kitResults.Rows[0];
+                        var newKitId = NextVisualTableId("spellvisualkit");
+                        kitRow["ID"] = newKitId;
+                        foreach (var effectField in WoWVersionManager.GetInstance().LookupKeyResource().EffectColumnKeys)
+                        {
+                            if (!uint.TryParse(kitRow[effectField].ToString(), out var sourceEffectId) || sourceEffectId == 0)
+                                continue;
+                            if (!effectCopies.TryGetValue(sourceEffectId, out var newEffectId))
+                            {
+                                using (var effectResults = adapter.Query($"SELECT * FROM spellvisualeffectname WHERE ID = {sourceEffectId}"))
+                                {
+                                    if (effectResults == null || effectResults.Rows.Count == 0)
+                                        continue;
+                                    var effectRow = effectResults.Rows[0];
+                                    newEffectId = NextVisualTableId("spellvisualeffectname");
+                                    effectRow["ID"] = newEffectId;
+                                    InsertVisualRow("spellvisualeffectname", effectRow);
+                                    effectCopies[sourceEffectId] = newEffectId;
+                                }
+                            }
+                            kitRow[effectField] = newEffectId;
+                        }
+                        InsertVisualRow("spellvisualkit", kitRow);
+                        visualRow[kitField] = newKitId;
+                    }
+                }
+                InsertVisualRow("spellvisual", visualRow);
+                return newVisualId;
+            }
+        }
+
+        private uint NextVisualTableId(string table)
+        {
+            var value = adapter.QuerySingleValue($"SELECT MAX(ID) FROM `{table}`");
+            return value == null || value == DBNull.Value ? 1u : Convert.ToUInt32(value, CultureInfo.InvariantCulture) + 1u;
+        }
+
+        private void EnsureVisualIdChoices()
+        {
+            if (VisualSelectIdTxt.Items.Count > 0 || adapter == null)
+                return;
+            using (var visuals = adapter.Query("SELECT ID FROM spellvisual ORDER BY ID"))
+            {
+                if (visuals == null)
+                    return;
+                VisualSelectIdTxt.ItemsSource = visuals.Rows.Cast<DataRow>()
+                    .Select(row => row["ID"].ToString())
+                    .ToList();
+            }
         }
 
         private void SelectItem_Click(object sender, RoutedEventArgs e)
