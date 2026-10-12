@@ -441,7 +441,70 @@ namespace SpellEditor.Sources.Emulator
         }
 
         /// <summary>Two fields per line like the Base tab, wide ones take a line of their own.</summary>
-        private Grid BuildFieldGrid(DataRow row)
+        private FrameworkElement BuildFieldGrid(DataRow row)
+        {
+            if (!string.Equals(Table.Name, "spell_template", StringComparison.OrdinalIgnoreCase))
+                return BuildFieldGrid(row, Table.Columns);
+
+            var sections = new[]
+            {
+                new { Header = "Base", Columns = Table.Columns.Where(column => SpellTemplateSection(column.Name) == "Base") },
+                new { Header = "Attributes", Columns = Table.Columns.Where(column => SpellTemplateSection(column.Name) == "Attributes") },
+                new { Header = "Casting / Costs", Columns = Table.Columns.Where(column => SpellTemplateSection(column.Name) == "Casting / Costs") },
+                new { Header = "Requirements", Columns = Table.Columns.Where(column => SpellTemplateSection(column.Name) == "Requirements") },
+                new { Header = "Effect 1", Columns = Table.Columns.Where(column => SpellTemplateSection(column.Name) == "Effect 1") },
+                new { Header = "Effect 2", Columns = Table.Columns.Where(column => SpellTemplateSection(column.Name) == "Effect 2") },
+                new { Header = "Effect 3", Columns = Table.Columns.Where(column => SpellTemplateSection(column.Name) == "Effect 3") },
+                new { Header = "Visual / Text", Columns = Table.Columns.Where(column => SpellTemplateSection(column.Name) == "Visual / Text") },
+                new { Header = "Server", Columns = Table.Columns.Where(column => SpellTemplateSection(column.Name) == "Server") }
+            };
+
+            var tabs = new TabControl { Margin = new Thickness(2, 4, 2, 6) };
+            foreach (var section in sections)
+            {
+                var columns = section.Columns.ToList();
+                if (columns.Count == 0)
+                    continue;
+                tabs.Items.Add(new TabItem
+                {
+                    Header = section.Header,
+                    Content = BuildFieldGrid(row, columns)
+                });
+            }
+            return tabs;
+        }
+
+        private static string SpellTemplateSection(string name)
+        {
+            if (name == "IsServerSide" || name == "AttributesServerside")
+                return "Server";
+            if (name.StartsWith("Attributes", StringComparison.Ordinal))
+                return "Attributes";
+            if (name.StartsWith("Effect", StringComparison.Ordinal) || name.StartsWith("DmgMultiplier", StringComparison.Ordinal))
+            {
+                var suffix = name[name.Length - 1];
+                if (suffix >= '1' && suffix <= '3')
+                    return "Effect " + suffix;
+            }
+            if (name.StartsWith("SpellName", StringComparison.Ordinal) ||
+                name.StartsWith("Rank", StringComparison.Ordinal) ||
+                name == "SpellVisual" || name == "SpellIconID" || name == "ActiveIconID" || name == "SpellPriority")
+                return "Visual / Text";
+            if (name.StartsWith("Reagent", StringComparison.Ordinal) ||
+                name.StartsWith("Mana", StringComparison.Ordinal) ||
+                name.Contains("Recovery") || name == "CastingTimeIndex" || name == "DurationIndex" ||
+                name == "PowerType" || name == "RangeIndex" || name == "Speed" || name == "ProcChance" || name == "ProcCharges")
+                return "Casting / Costs";
+            if (name.StartsWith("Stance", StringComparison.Ordinal) || name.StartsWith("Totem", StringComparison.Ordinal) ||
+                name.StartsWith("Equipped", StringComparison.Ordinal) || name.StartsWith("Min", StringComparison.Ordinal) ||
+                name.StartsWith("Required", StringComparison.Ordinal) || name.Contains("AuraState") ||
+                name.Contains("Target") || name == "Targets" || name == "TargetCreatureType" ||
+                name == "RequiresSpellFocus" || name == "FacingCasterFlags" || name == "AreaId")
+                return "Requirements";
+            return "Base";
+        }
+
+        private Grid BuildFieldGrid(DataRow row, IEnumerable<WorldColumn> columns)
         {
             var grid = new Grid();
             for (var i = 0; i < 4; ++i)
@@ -459,7 +522,7 @@ namespace SpellEditor.Sources.Emulator
 
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            foreach (var column in Table.Columns)
+            foreach (var column in columns)
             {
                 var control = BuildControl(column, row, out var fullWidth);
                 var label = new Label
