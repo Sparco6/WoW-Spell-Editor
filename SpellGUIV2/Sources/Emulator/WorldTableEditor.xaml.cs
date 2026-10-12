@@ -967,6 +967,12 @@ namespace SpellEditor.Sources.Emulator
             var assignments = new List<string>();
             foreach (var column in Table.Columns)
             {
+                // The selected spell id is the immutable owner of this row. Rewriting it in the
+                // SET clause is redundant and can fail against older/custom schemas whose entry
+                // type is narrower than the client spell table. The original key remains in WHERE.
+                if (column.IsPrimarySpellKey)
+                    continue;
+
                 if (!TryFormat(column, row[column.Name] as string, rowNumber, out var value, out error))
                     return false;
                 assignments.Add($"`{column.Name}` = {value}");
