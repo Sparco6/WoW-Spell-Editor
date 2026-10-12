@@ -115,8 +115,23 @@ The same regression was run against the available expansion reference sets: 19 V
 
 ## CMaNGOS world database mapping
 
-The TBC integration was checked against the active MasterWoW base schema and loader queries. It
-supports `spell_bonus_data`, `spell_proc_event`, `spell_threat`, `spell_elixir`, `spell_learn_spell`,
-`spell_pet_auras`, `spell_affect`, and `spell_chain`. It does not expose Trinity/AzerothCore tables.
-The non-existent CMaNGOS `spell_group_spell` mapping and the non-existent TBC `spell_threat` column
-`InverseEffectMask` were removed.
+The TBC integration was checked against the active MasterWoW loader queries and the supplied
+`tbcmangos1110.sql` schema. It supports the spell-scoped rows in `spell_affect`, `spell_area`,
+`spell_bonus_cpdata`, `spell_bonus_data`, `spell_chain`, `spell_cone`, `spell_elixir`,
+`spell_learn_spell`, `spell_map`, `spell_map_restriction`, `spell_pet_auras`, `spell_proc_event`,
+`spell_proc_item_enchant`, `spell_script_target`, `spell_scripts`, `spell_target_position`,
+`spell_threat`, and the separately labelled server `spell_template` record. Tabs are shown only
+when the connected database actually contains the table.
+
+Every tab can create a missing row for the selected spell without writing until **Save** is used.
+The `spell_template` Add action initializes its TBC fields from the selected client Spell.dbc row,
+but keeps the server record separate and exposes `IsServerSide` and `AttributesServerside` for an
+explicit review. Named mask controls default to human-readable checkboxes; **Show raw number**
+switches to the exact decimal/hexadecimal editor without changing the stored bits. Unknown bits are
+retained by the raw value path.
+
+`spell_facing` is present in the supplied dump but has no matching loader in the inspected current
+MasterWoW core, so it is not presented as an active table. `spell_bonus_data_before` is a historical
+backup table and is intentionally excluded. The integration does not expose Trinity/AzerothCore
+tables. The non-existent CMaNGOS `spell_group_spell` mapping and the non-existent TBC
+`spell_threat.InverseEffectMask` column remain excluded.

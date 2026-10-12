@@ -21,5 +21,20 @@ namespace SpellEditor.Sources.Emulator.CMangos.Tbc
 
         /// <summary>TBC added the unstable and Shattrath elixirs.</summary>
         public override FlagSet ElixirMask => CMangosEnums.ElixirMask;
+
+        protected override void ConfigureTables(WorldTableSet tables)
+        {
+            base.ConfigureTables(tables);
+            tables.Add(new SpellBonusCpDataTable(this));
+            tables.Add(new SpellAreaTable(this));
+            tables.Add(new SpellMapTable(this));
+            tables.Add(new SpellMapRestrictionTable(this));
+            tables.Add(new SpellProcItemEnchantTable(this));
+            tables.Add(new SpellScriptTargetTable(this));
+            tables.Add(new SpellTargetPositionTable(this));
+            tables.Add(new SpellScriptsTable(this));
+            tables.Add(new SpellConeTable(this));
+            tables.Add(new SpellTemplateTable(this));
+        }
     }
 }

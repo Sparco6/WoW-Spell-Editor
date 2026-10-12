@@ -36,6 +36,8 @@ namespace SpellEditor.Sources.Emulator
         private readonly Dictionary<DataRow, string> _rowNotes = new Dictionary<DataRow, string>();
         /// <summary>Tick filter per flag column, so it survives the rebuild on every load.</summary>
         private readonly Dictionary<string, bool> _flagFilters = new Dictionary<string, bool>();
+        /// <summary>Raw/human display choice per mask column.</summary>
+        private readonly Dictionary<string, bool> _rawFlagViews = new Dictionary<string, bool>();
 
         private WorldDatabase _database;
         private DataTable _data;
@@ -694,10 +696,32 @@ namespace SpellEditor.Sources.Emulator
             };
             header.Children.Add(checkedOnly);
 
+            var rawMode = new CheckBox
+            {
+                IsChecked = _rawFlagViews.TryGetValue(column.Name, out var showRaw) && showRaw,
+                Content = Localise("emu_show_raw_mask", "Show raw number"),
+                ToolTip = Localise("emu_show_raw_mask_tip",
+                    "Switch between named human-readable choices and the exact decimal/hexadecimal mask"),
+                Margin = new Thickness(12, 0, 5, 3),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            void ApplyDisplayMode()
+            {
+                var rawVisible = rawMode.IsChecked == true;
+                _rawFlagViews[column.Name] = rawVisible;
+                listHost.Visibility = rawVisible ? Visibility.Collapsed : Visibility.Visible;
+                checkedOnly.Visibility = rawVisible ? Visibility.Collapsed : Visibility.Visible;
+                footer.Visibility = rawVisible ? Visibility.Visible : Visibility.Collapsed;
+            }
+            rawMode.Checked += (sender, args) => ApplyDisplayMode();
+            rawMode.Unchecked += (sender, args) => ApplyDisplayMode();
+            header.Children.Add(rawMode);
+
             var panel = new StackPanel { Margin = new Thickness(0, 3, 0, 0) };
             panel.Children.Add(header);
             panel.Children.Add(listHost);
             panel.Children.Add(footer);
+            ApplyDisplayMode();
             return panel;
         }
 
@@ -996,7 +1020,8 @@ namespace SpellEditor.Sources.Emulator
             {
                 Database = _database,
                 Chain = _chain ?? new RankChain(_spellId),
-                Rows = LiveRows()
+                Rows = LiveRows(),
+                ClientSpellRow = LoadClientSpellRow()
             };
 
             var row = _data.NewRow();
@@ -1013,6 +1038,14 @@ namespace SpellEditor.Sources.Emulator
 
             BuildRows();
             SetStatus(Localise("emu_row_added", "Added. It is not in the database until you save."), false);
+        }
+
+        private DataRow LoadClientSpellRow()
+        {
+            if (_mainWindow == null || _spellId == 0)
+                return null;
+            var table = _mainWindow.GetDBAdapter()?.Query($"SELECT * FROM `spell` WHERE `ID` = {_spellId} LIMIT 1");
+            return table != null && table.Rows.Count == 1 ? table.Rows[0] : null;
         }
 
         private void RemoveRow(DataRow row)

@@ -21,6 +21,8 @@ namespace SpellEditor.Sources.Emulator
         public RankChain Chain;
         /// <summary>Rows already on screen, unsaved ones included.</summary>
         public IReadOnlyList<DataRow> Rows;
+        /// <summary>The selected client Spell.dbc projection, used by server spell_template defaults.</summary>
+        public DataRow ClientSpellRow;
 
         public uint SpellId => Chain?.SpellId ?? 0;
     }
