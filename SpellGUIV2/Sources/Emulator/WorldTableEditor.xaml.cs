@@ -122,9 +122,11 @@ namespace SpellEditor.Sources.Emulator
         /// <summary>Keeps values the enum does not know about so a combo box never blanks one out.</summary>
         private void BuildEnumSources()
         {
-            foreach (var column in Table.Columns.Where(entry => entry.Enum != null))
+            foreach (var column in Table.Columns.Where(entry => entry.Enum != null || entry.ClientOptionSource != null))
             {
-                var values = column.Enum.Values.ToList();
+                var values = column.Enum != null
+                    ? column.Enum.Values.ToList()
+                    : (_mainWindow?.GetServerSpellOptions(column.ClientOptionSource) ?? Enumerable.Empty<EnumValue>()).ToList();
                 var known = new HashSet<string>(values.Select(entry => entry.Value));
 
                 if (_data != null)
@@ -582,7 +584,7 @@ namespace SpellEditor.Sources.Emulator
                 return BuildFlagField(column, row);
             }
 
-            if (column.Enum != null)
+            if (column.Enum != null || column.ClientOptionSource != null)
                 return BuildEnumField(column, row);
 
             if (column.ShowSpellPicker)

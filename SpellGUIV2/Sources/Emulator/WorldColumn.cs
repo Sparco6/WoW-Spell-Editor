@@ -41,6 +41,11 @@ namespace SpellEditor.Sources.Emulator
         public string DefaultValue = "0";
         public FlagSet Flags;
         public EnumSet Enum;
+        /// <summary>
+        /// Name of the client editor selector whose id/name choices also describe this server
+        /// spell_template field. Unknown numeric values remain available as a raw fallback.
+        /// </summary>
+        public string ClientOptionSource;
         public bool IsMultiline;
         /// <summary>From the table label list, see WorldTable.ApplyLocalisedText.</summary>
         public string Label;

@@ -5344,6 +5344,45 @@ namespace SpellEditor
         #region Emulator world database
         private WorldIntegration EmulatorIntegrationInstance;
 
+        /// <summary>
+        /// Reuses the already version-filtered choices shown by the client Spell.dbc editor for
+        /// matching spell_template fields. This keeps TBC effects, auras and targets within the
+        /// same verified ranges instead of maintaining a second numeric list.
+        /// </summary>
+        internal IEnumerable<EnumValue> GetServerSpellOptions(string source)
+        {
+            ItemsControl control = source switch
+            {
+                "Category" => Category,
+                "Dispel" => DispelType,
+                "Mechanic" => MechanicType,
+                "Effect" => SpellEffect1,
+                "Target" => TargetA1,
+                "Radius" => RadiusIndex1,
+                "Aura" => ApplyAuraName1,
+                "SpellFocus" => RequiresSpellFocus,
+                "CastTime" => CastTime,
+                "Duration" => Duration,
+                "Range" => Range,
+                "Family" => SpellFamilyName,
+                _ => null
+            };
+            if (control == null)
+                return Enumerable.Empty<EnumValue>();
+
+            var items = control.ItemsSource?.Cast<object>() ?? control.Items.Cast<object>();
+            var result = new List<EnumValue>();
+            foreach (var item in items)
+            {
+                var label = item?.ToString() ?? string.Empty;
+                var separator = label.IndexOf(" - ", StringComparison.Ordinal);
+                if (separator <= 0 || !long.TryParse(label.Substring(0, separator), out var value))
+                    continue;
+                result.Add(new EnumValue(value, label.Substring(separator + 3)));
+            }
+            return result;
+        }
+
         /// <summary>Hides the world tables unless the integration is turned on in the settings.</summary>
         public void UpdateEmulatorTabVisibility()
         {

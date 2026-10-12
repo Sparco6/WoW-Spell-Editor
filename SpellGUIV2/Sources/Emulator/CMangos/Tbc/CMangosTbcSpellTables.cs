@@ -270,7 +270,8 @@ namespace SpellEditor.Sources.Emulator.CMangos.Tbc
             return value == null || value == DBNull.Value ? fallback : Convert.ToString(value, CultureInfo.InvariantCulture);
         }
 
-        private static WorldColumn C(string name, ColumnKind kind = ColumnKind.UInt, string defaultValue = "0", FlagSet flags = null)
+        private static WorldColumn C(string name, ColumnKind kind = ColumnKind.UInt, string defaultValue = "0", FlagSet flags = null,
+            string clientOptions = null)
         {
             return new WorldColumn
             {
@@ -278,19 +279,61 @@ namespace SpellEditor.Sources.Emulator.CMangos.Tbc
                 Kind = kind,
                 DefaultValue = defaultValue,
                 Flags = flags,
+                ClientOptionSource = clientOptions,
                 NewRowValue = context => Client(context, name, defaultValue),
-                Label = name,
-                Tooltip = "Server spell_template field. A new row is initialized from the selected client Spell.dbc record."
+                Label = FriendlyLabel(name),
+                Tooltip = clientOptions == null
+                    ? "Server spell_template field. A new row is initialized from the selected client Spell.dbc record."
+                    : "Uses the same TBC choices and numeric ids as the matching client Spell.dbc field. Unknown existing values are preserved."
             };
+        }
+
+        private static string FriendlyLabel(string name)
+        {
+            var slot = name.Length > 0 && name[name.Length - 1] >= '1' && name[name.Length - 1] <= '3'
+                ? " " + name[name.Length - 1]
+                : string.Empty;
+            var stem = slot.Length == 0 ? name : name.Substring(0, name.Length - 1);
+            switch (stem)
+            {
+                case "Effect": return "Spell Effect" + slot;
+                case "EffectDieSides": return "Die Sides" + slot;
+                case "EffectBaseDice": return "Base Dice" + slot;
+                case "EffectDicePerLevel": return "Dice Per Level" + slot;
+                case "EffectRealPointsPerLevel": return "Real Points Per Level" + slot;
+                case "EffectBasePoints": return "Base Points" + slot;
+                case "EffectMechanic": return "Mechanic" + slot;
+                case "EffectImplicitTargetA": return "Target A" + slot;
+                case "EffectImplicitTargetB": return "Target B" + slot;
+                case "EffectRadiusIndex": return "Radius" + slot;
+                case "EffectApplyAuraName": return "Apply Aura Name" + slot;
+                case "EffectAmplitude": return "Amplitude" + slot;
+                case "EffectMultipleValue": return "Multiple Value" + slot;
+                case "EffectChainTarget": return "Chain Target" + slot;
+                case "EffectItemType": return "Item Type" + slot;
+                case "EffectMiscValue": return "Misc Value A" + slot;
+                case "EffectMiscValueB": return "Misc Value B" + slot;
+                case "EffectTriggerSpell": return "Trigger Spell" + slot;
+                case "EffectPointsPerComboPoint": return "Points Per Combo Point" + slot;
+                case "DmgMultiplier": return "Damage Multiplier" + slot;
+                default: return name;
+            }
         }
 
         protected override IEnumerable<WorldColumn> CreateColumns()
         {
             var id = C("Id"); id.IsKey = true; id.IsPrimarySpellKey = true; yield return id;
-            foreach (var name in new[] { "Category", "CastUI", "Dispel", "Mechanic" }) yield return C(name);
+            yield return C("Category", clientOptions: "Category");
+            yield return C("CastUI");
+            yield return C("Dispel", clientOptions: "Dispel");
+            yield return C("Mechanic", clientOptions: "Mechanic");
             foreach (var name in new[] { "Attributes", "AttributesEx", "AttributesEx2", "AttributesEx3", "AttributesEx4", "AttributesEx5", "AttributesEx6" })
                 yield return C(name, flags: AttributeFlags(name));
-            foreach (var name in new[] { "Stances", "StancesNot", "Targets", "TargetCreatureType", "RequiresSpellFocus", "FacingCasterFlags", "CasterAuraState", "TargetAuraState", "CasterAuraStateNot", "TargetAuraStateNot", "CastingTimeIndex", "RecoveryTime", "CategoryRecoveryTime", "InterruptFlags", "AuraInterruptFlags", "ChannelInterruptFlags", "ProcFlags", "ProcChance", "ProcCharges", "MaxLevel", "BaseLevel", "SpellLevel", "DurationIndex", "PowerType", "ManaCost", "ManaCostPerlevel", "ManaPerSecond", "ManaPerSecondPerLevel", "RangeIndex" }) yield return C(name, defaultValue: name == "RangeIndex" ? "1" : "0");
+            foreach (var name in new[] { "Stances", "StancesNot", "Targets", "TargetCreatureType", "FacingCasterFlags", "CasterAuraState", "TargetAuraState", "CasterAuraStateNot", "TargetAuraStateNot", "RecoveryTime", "CategoryRecoveryTime", "InterruptFlags", "AuraInterruptFlags", "ChannelInterruptFlags", "ProcFlags", "ProcChance", "ProcCharges", "MaxLevel", "BaseLevel", "SpellLevel", "PowerType", "ManaCost", "ManaCostPerlevel", "ManaPerSecond", "ManaPerSecondPerLevel" }) yield return C(name);
+            yield return C("RequiresSpellFocus", clientOptions: "SpellFocus");
+            yield return C("CastingTimeIndex", clientOptions: "CastTime");
+            yield return C("DurationIndex", clientOptions: "Duration");
+            yield return C("RangeIndex", defaultValue: "1", clientOptions: "Range");
             yield return C("Speed", ColumnKind.Float);
             foreach (var name in new[] { "ModalNextSpell", "StackAmount", "Totem1", "Totem2" }) yield return C(name);
             for (var i = 1; i <= 8; ++i) yield return C("Reagent" + i, ColumnKind.Int);
@@ -299,20 +342,29 @@ namespace SpellEditor.Sources.Emulator.CMangos.Tbc
             yield return C("EquippedItemSubClassMask", ColumnKind.Int);
             yield return C("EquippedItemInventoryTypeMask", ColumnKind.Int);
 
-            for (var i = 1; i <= 3; ++i) yield return C("Effect" + i);
+            for (var i = 1; i <= 3; ++i) yield return C("Effect" + i, clientOptions: "Effect");
             for (var i = 1; i <= 3; ++i) yield return C("EffectDieSides" + i, ColumnKind.Int);
             for (var i = 1; i <= 3; ++i) yield return C("EffectBaseDice" + i);
             for (var i = 1; i <= 3; ++i) yield return C("EffectDicePerLevel" + i, ColumnKind.Float);
             for (var i = 1; i <= 3; ++i) yield return C("EffectRealPointsPerLevel" + i, ColumnKind.Float);
             for (var i = 1; i <= 3; ++i) yield return C("EffectBasePoints" + i, ColumnKind.Int);
-            foreach (var prefix in new[] { "EffectMechanic", "EffectImplicitTargetA", "EffectImplicitTargetB", "EffectRadiusIndex", "EffectApplyAuraName", "EffectAmplitude" })
-                for (var i = 1; i <= 3; ++i) yield return C(prefix + i);
+            for (var i = 1; i <= 3; ++i) yield return C("EffectMechanic" + i, clientOptions: "Mechanic");
+            foreach (var prefix in new[] { "EffectImplicitTargetA", "EffectImplicitTargetB" })
+                for (var i = 1; i <= 3; ++i) yield return C(prefix + i, clientOptions: "Target");
+            for (var i = 1; i <= 3; ++i) yield return C("EffectRadiusIndex" + i, clientOptions: "Radius");
+            for (var i = 1; i <= 3; ++i) yield return C("EffectApplyAuraName" + i, clientOptions: "Aura");
+            for (var i = 1; i <= 3; ++i) yield return C("EffectAmplitude" + i);
             for (var i = 1; i <= 3; ++i) yield return C("EffectMultipleValue" + i, ColumnKind.Float);
             foreach (var prefix in new[] { "EffectChainTarget", "EffectItemType" })
                 for (var i = 1; i <= 3; ++i) yield return C(prefix + i);
             foreach (var prefix in new[] { "EffectMiscValue", "EffectMiscValueB" })
                 for (var i = 1; i <= 3; ++i) yield return C(prefix + i, ColumnKind.Int);
-            for (var i = 1; i <= 3; ++i) yield return C("EffectTriggerSpell" + i);
+            for (var i = 1; i <= 3; ++i)
+            {
+                var trigger = C("EffectTriggerSpell" + i);
+                trigger.ShowSpellPicker = true;
+                yield return trigger;
+            }
             for (var i = 1; i <= 3; ++i) yield return C("EffectPointsPerComboPoint" + i, ColumnKind.Float);
             foreach (var name in new[] { "SpellVisual", "SpellIconID", "ActiveIconID", "SpellPriority" }) yield return C(name);
 
@@ -323,7 +375,8 @@ namespace SpellEditor.Sources.Emulator.CMangos.Tbc
             }
             for (var i = 1; i <= 16; ++i) yield return C("Rank" + i, ColumnKind.Text, "");
 
-            foreach (var name in new[] { "ManaCostPercentage", "StartRecoveryCategory", "StartRecoveryTime", "MaxTargetLevel", "SpellFamilyName" }) yield return C(name);
+            foreach (var name in new[] { "ManaCostPercentage", "StartRecoveryCategory", "StartRecoveryTime", "MaxTargetLevel" }) yield return C(name);
+            yield return C("SpellFamilyName", clientOptions: "Family");
             var family = C("SpellFamilyFlags", ColumnKind.ULong);
             family.NewRowValue = context =>
             {
