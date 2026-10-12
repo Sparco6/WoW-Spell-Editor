@@ -5351,19 +5351,35 @@ namespace SpellEditor
         /// </summary>
         internal IEnumerable<EnumValue> GetServerSpellOptions(string source)
         {
+            var dbcBinding = source switch
+            {
+                "Dispel" => "SpellDispelType",
+                "Mechanic" => "SpellMechanic",
+                "Radius" => "SpellRadius",
+                "SpellFocus" => "SpellFocusObject",
+                "CastTime" => "SpellCastTimes",
+                "Duration" => "SpellDuration",
+                "Range" => "SpellRange",
+                _ => null
+            };
+            if (dbcBinding != null && DBCManager.GetInstance().FindDbcForBinding(dbcBinding) is IBoxContentProvider provider)
+            {
+                return provider.GetAllBoxes().Select(box =>
+                {
+                    var label = box.NameLabel?.Content?.ToString() ?? box.Name ?? "Unknown";
+                    var idPrefix = box.ID.ToString(CultureInfo.InvariantCulture) + " - ";
+                    if (label.StartsWith(idPrefix, StringComparison.Ordinal))
+                        label = label.Substring(idPrefix.Length);
+                    return new EnumValue(box.ID, label.Replace('\n', ' ').Replace('\t', ' ').Trim());
+                }).ToList();
+            }
+
             ItemsControl control = source switch
             {
                 "Category" => Category,
-                "Dispel" => DispelType,
-                "Mechanic" => MechanicType,
                 "Effect" => SpellEffect1,
                 "Target" => TargetA1,
-                "Radius" => RadiusIndex1,
                 "Aura" => ApplyAuraName1,
-                "SpellFocus" => RequiresSpellFocus,
-                "CastTime" => CastTime,
-                "Duration" => Duration,
-                "Range" => Range,
                 "Family" => SpellFamilyName,
                 _ => null
             };
