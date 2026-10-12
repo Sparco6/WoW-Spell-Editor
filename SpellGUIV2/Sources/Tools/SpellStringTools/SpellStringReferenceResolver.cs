@@ -95,7 +95,12 @@ namespace SpellEditor.Sources.SpellStringTools
                 foreach (var token in tokens)
                 {
                     var index = token[token.Length - 1];
-                    str = ReplaceToken(str, token, FormatRecordValue(record[column + index], format));
+                    var indexedColumn = column + index;
+                    // A custom string can contain a token from a newer client layout.
+                    // Preserve that token when this version has no backing column instead
+                    // of crashing spell selection or fabricating a zero value.
+                    if (record.Table.Columns.Contains(indexedColumn))
+                        str = ReplaceToken(str, token, FormatRecordValue(record[indexedColumn], format));
                 }
                 return str;
             };
@@ -109,7 +114,10 @@ namespace SpellEditor.Sources.SpellStringTools
             parser.tokenFunc = (str, record, mainWindow) =>
             {
                 foreach (var token in tokens)
-                    str = ReplaceToken(str, token, FormatRecordValue(record[column], format));
+                {
+                    if (record.Table.Columns.Contains(column))
+                        str = ReplaceToken(str, token, FormatRecordValue(record[column], format));
+                }
                 return str;
             };
             return parser;

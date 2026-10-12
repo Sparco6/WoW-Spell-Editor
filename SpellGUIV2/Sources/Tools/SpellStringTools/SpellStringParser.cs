@@ -154,6 +154,12 @@ namespace SpellEditor.Sources.SpellStringTools
         {
             var matches = TokenRegex.Matches(formula);
             var tokens = TokenizeFormulaMatches(matches, spell, mainWindow);
+            foreach (var token in tokens)
+            {
+                if (token.Type == TokenType.REFERENCE && token.ResolvedValue != null &&
+                    token.ResolvedValue.ToString().StartsWith("$", StringComparison.Ordinal))
+                    return "<UNRESOLVED:" + formula + ">";
+            }
             // Derive token values
             for (int index = 0; index < tokens.Count; ++index)
             {

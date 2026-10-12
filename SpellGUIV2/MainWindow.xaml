@@ -547,7 +547,7 @@
 
                                 <Label Content="{DynamicResource labDamageMultiplier1}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="471,166,0,0"/>
                                 <c2:ThreadSafeTextBox x:Name="EffectDamageMultiplier1" VerticalAlignment="Top" HorizontalAlignment="Left" Height="23" Margin="610,166,0,0" Width="300" TextWrapping="Wrap"/>
-                                <Label Content="{DynamicResource labEffectBonusMultiplier1}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="471,197,0,0"/>
+                                <Label x:Name="EffectBonusMultiplierLabel1" Content="{DynamicResource labEffectBonusMultiplier1}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="471,197,0,0"/>
                                 <c2:ThreadSafeTextBox x:Name="EffectBonusMultiplier1" VerticalAlignment="Top" HorizontalAlignment="Left" Height="23" Margin="610,197,0,0" Width="300" TextWrapping="Wrap"/>
 
                                 <Button x:Name="EffectCopyFrom1" Content="{DynamicResource effectCopyFrom}" ToolTip="{DynamicResource effectCopyFromTip}" VerticalAlignment="Top" HorizontalAlignment="Left" Height="30" Margin="152,455,0,0" Width="145" Click="EffectCopyFrom_Click"/>
@@ -600,7 +600,7 @@
 
                                 <Label Content="{DynamicResource labDamageMultiplier2}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="471,166,0,0"/>
                                 <c2:ThreadSafeTextBox x:Name="EffectDamageMultiplier2" VerticalAlignment="Top" HorizontalAlignment="Left" Height="23" Margin="610,166,0,0" Width="300" TextWrapping="Wrap"/>
-                                <Label Content="{DynamicResource labEffectBonusMultiplier2}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="471,197,0,0"/>
+                                <Label x:Name="EffectBonusMultiplierLabel2" Content="{DynamicResource labEffectBonusMultiplier2}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="471,197,0,0"/>
                                 <c2:ThreadSafeTextBox x:Name="EffectBonusMultiplier2" VerticalAlignment="Top" HorizontalAlignment="Left" Height="23" Margin="610,197,0,0" Width="300" TextWrapping="Wrap"/>
 
                                 <Button x:Name="EffectCopyFrom2" Content="{DynamicResource effectCopyFrom}" ToolTip="{DynamicResource effectCopyFromTip}" VerticalAlignment="Top" HorizontalAlignment="Left" Height="30" Margin="152,455,0,0" Width="145" Click="EffectCopyFrom_Click"/>
@@ -653,7 +653,7 @@
 
                                 <Label Content="{DynamicResource labDamageMultiplier2}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="471,166,0,0"/>
                                 <c2:ThreadSafeTextBox x:Name="EffectDamageMultiplier3" VerticalAlignment="Top" HorizontalAlignment="Left" Height="23" Margin="610,166,0,0" Width="300" TextWrapping="Wrap"/>
-                                <Label Content="{DynamicResource labEffectBonusMultiplier2}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="471,197,0,0"/>
+                                <Label x:Name="EffectBonusMultiplierLabel3" Content="{DynamicResource labEffectBonusMultiplier3}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="471,197,0,0"/>
                                 <c2:ThreadSafeTextBox x:Name="EffectBonusMultiplier3" VerticalAlignment="Top" HorizontalAlignment="Left" Height="23" Margin="610,197,0,0" Width="300" TextWrapping="Wrap"/>
 
 
@@ -841,7 +841,7 @@
                                 <ScrollViewer Margin="5" MaxWidth="300" Grid.Row="2" Grid.Column="2">
                                     <StackPanel Name="Attributes7"/>
                                 </ScrollViewer>
-                                <Label Content="{DynamicResource labAttributesEx7}" HorizontalAlignment="Center" Margin="2" Grid.Row="1" Grid.Column="3"/>
+                                <Label x:Name="AttributesEx7Label" Content="{DynamicResource labAttributesEx7}" HorizontalAlignment="Center" Margin="2" Grid.Row="1" Grid.Column="3"/>
                                 <ScrollViewer Margin="5" Grid.Row="2" Grid.Column="3">
                                     <StackPanel Name="Attributes8"/>
                                 </ScrollViewer>
@@ -961,29 +961,29 @@
                     <Label Content="{DynamicResource labTargetAuraStateNot}" ToolTip="{DynamicResource labTargetAuraStateNotTip}" Margin="5" Grid.Row="1" Grid.Column="0"/>
                     <c2:ThreadSafeComboBox x:Name="TargetAuraStateNot" Margin="5" Width="150" Grid.Row="1" Grid.Column="1"/>
 
-                    <Label Content="{DynamicResource labCasterAuraSpell}" ToolTip="{DynamicResource labCasterAuraSpellTip}" Margin="5" Grid.Row="2" Grid.Column="0"/>
-                    <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3">
+                    <Label x:Name="CasterAuraSpellLabel" Content="{DynamicResource labCasterAuraSpell}" ToolTip="{DynamicResource labCasterAuraSpellTip}" Margin="5" Grid.Row="2" Grid.Column="0"/>
+                    <StackPanel x:Name="CasterAuraSpellPanel" Orientation="Horizontal" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3">
                         <c2:UIntTextBox x:Name="CasterAuraSpell" Margin="5,5,0,5" Width="120" Height="26" ValueChanged="SpellRef_ValueChanged"/>
                         <Button x:Name="CasterAuraSpellPick" Content="..." ToolTip="{DynamicResource labTriggerSpellPickTip}" Margin="4,5,5,5" Width="26" Height="26" Padding="0" Click="SpellRef_Click"/>
                         <TextBlock x:Name="CasterAuraSpellName" VerticalAlignment="Center" Width="260" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
 
-                    <Label Content="{DynamicResource labTargetAuraSpell}" ToolTip="{DynamicResource labTargetAuraSpellTip}" Margin="5" Grid.Row="3" Grid.Column="0"/>
-                    <StackPanel Orientation="Horizontal" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3">
+                    <Label x:Name="TargetAuraSpellLabel" Content="{DynamicResource labTargetAuraSpell}" ToolTip="{DynamicResource labTargetAuraSpellTip}" Margin="5" Grid.Row="3" Grid.Column="0"/>
+                    <StackPanel x:Name="TargetAuraSpellPanel" Orientation="Horizontal" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3">
                         <c2:UIntTextBox x:Name="TargetAuraSpell" Margin="5,5,0,5" Width="120" Height="26" ValueChanged="SpellRef_ValueChanged"/>
                         <Button x:Name="TargetAuraSpellPick" Content="..." ToolTip="{DynamicResource labTriggerSpellPickTip}" Margin="4,5,5,5" Width="26" Height="26" Padding="0" Click="SpellRef_Click"/>
                         <TextBlock x:Name="TargetAuraSpellName" VerticalAlignment="Center" Width="260" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
 
-                    <Label Content="{DynamicResource labExcludeCasterAuraSpell}" ToolTip="{DynamicResource labExcludeCasterAuraSpellTip}" Margin="5" Grid.Row="4" Grid.Column="0"/>
-                    <StackPanel Orientation="Horizontal" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3">
+                    <Label x:Name="ExcludeCasterAuraSpellLabel" Content="{DynamicResource labExcludeCasterAuraSpell}" ToolTip="{DynamicResource labExcludeCasterAuraSpellTip}" Margin="5" Grid.Row="4" Grid.Column="0"/>
+                    <StackPanel x:Name="ExcludeCasterAuraSpellPanel" Orientation="Horizontal" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3">
                         <c2:UIntTextBox x:Name="ExcludeCasterAuraSpell" Margin="5,5,0,5" Width="120" Height="26" ValueChanged="SpellRef_ValueChanged"/>
                         <Button x:Name="ExcludeCasterAuraSpellPick" Content="..." ToolTip="{DynamicResource labTriggerSpellPickTip}" Margin="4,5,5,5" Width="26" Height="26" Padding="0" Click="SpellRef_Click"/>
                         <TextBlock x:Name="ExcludeCasterAuraSpellName" VerticalAlignment="Center" Width="260" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
 
-                    <Label Content="{DynamicResource labExcludeTargetAuraSpell}" ToolTip="{DynamicResource labExcludeTargetAuraSpellTip}" Margin="5" Grid.Row="5" Grid.Column="0"/>
-                    <StackPanel Orientation="Horizontal" Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3">
+                    <Label x:Name="ExcludeTargetAuraSpellLabel" Content="{DynamicResource labExcludeTargetAuraSpell}" ToolTip="{DynamicResource labExcludeTargetAuraSpellTip}" Margin="5" Grid.Row="5" Grid.Column="0"/>
+                    <StackPanel x:Name="ExcludeTargetAuraSpellPanel" Orientation="Horizontal" Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3">
                         <c2:UIntTextBox x:Name="ExcludeTargetAuraSpell" Margin="5,5,0,5" Width="120" Height="26" ValueChanged="SpellRef_ValueChanged"/>
                         <Button x:Name="ExcludeTargetAuraSpellPick" Content="..." ToolTip="{DynamicResource labTriggerSpellPickTip}" Margin="4,5,5,5" Width="26" Height="26" Padding="0" Click="SpellRef_Click"/>
                         <TextBlock x:Name="ExcludeTargetAuraSpellName" VerticalAlignment="Center" Width="260" TextTrimming="CharacterEllipsis"/>

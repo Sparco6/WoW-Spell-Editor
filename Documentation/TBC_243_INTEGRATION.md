@@ -16,6 +16,11 @@ The server-side override word is catalogued for audit purposes but is not serial
 client `Spell.dbc`. The TBC DBC has seven client attribute words and the editor preserves all raw
 bits, including unknown `AttributesEx6` bits 18-31.
 
+`AttributesEx7` is not part of the build-8606 layout. The column remains visible for cross-version
+orientation but is disabled in TBC mode and is never read or written. The current MasterWoW
+`SpellAttributesEx6` enum defines bits 0-17 only; bits 18-31 therefore remain explicitly unknown
+rather than receiving unrelated WotLK names.
+
 ## Spell family masks
 
 The family-mask editor displays the two 32-bit TBC base words independently (the three-word effect
@@ -24,6 +29,10 @@ and spell searching, matching-spell lists, decimal and hexadecimal raw editing, 
 preservation. Definitions remain scoped to the selected family. In TBC mode a pre-existing label is
 only presented as identified when the imported TBC data contains matching spells; otherwise the bit
 is explicitly shown as unknown while remaining editable.
+
+The base **Edit Families** button is intentionally available in TBC because build 8606 stores a
+64-bit base family mask as `SpellFamilyFlags1` and `SpellFamilyFlags2`. Effect-level family masks
+and their editor buttons are WotLK-only and are disabled in TBC mode.
 
 ## Spell visuals
 
@@ -74,6 +83,32 @@ byte-identical after reconstruction:
 
 This is serialization validation, not in-game certification.
 
+## Configuration and database selection
+
+The selected expansion, bindings, and DBC directory must describe the same client build. Selecting
+`2.4.3 8606` now selects the packaged `Bindings_243_tbc` directory automatically. The application
+validates every required DBC and binding before loading and reports the exact missing files and
+configured directories; it no longer continues into a misleading null-reference failure.
+
+SQLite database paths may be absolute. The configuration window displays the resolved path and has
+a file picker for an existing `.db`, `.sqlite`, or `.sqlite3` file. A bare relative name still
+resolves beside the running application for backward compatibility. This matters for self-contained
+published builds: starting from a new directory with `SpellEditor` as the relative name creates a
+new database there rather than opening a database from a different installation.
+
+The supplied primary client directory is not a complete editor DBC set. It contains the eight
+validated files listed above, but the editor also needs reference DBCs such as `SpellDuration`,
+`SpellRange`, and `SpellRadius`. Point the editor at a complete build-8606 DBC directory and do not
+mix it with the WotLK bindings.
+
+The editor's primary `spell` table is the client-authoring projection produced from `Spell.dbc`.
+CMaNGOS `spell_template`/server exports are separate evidence and must not replace that table: they
+use different names and omit client-only localized strings and visual data. The CMaNGOS integration
+reads its supported world tables separately. TBC also has no `CasterAuraSpell`,
+`TargetAuraSpell`, exclusion-aura spell references, `PowerDisplayId`, or
+`EffectBonusMultiplier1..3`; their controls are disabled and these columns are not read or written.
+If a custom tooltip contains a newer-client `$bc1`/`$bc2`/`$bc3` token, the token is preserved
+visibly instead of being replaced with zero or aborting spell selection.
 The same regression was run against the available expansion reference sets: 19 Vanilla files and
 245 WotLK files round-tripped byte-for-byte. The WotLK source contained one zero-byte
 `CharVariations.dbc`; that invalid input was explicitly excluded and is not reported as passing.

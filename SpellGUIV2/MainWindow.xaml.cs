@@ -1756,7 +1756,7 @@ namespace SpellEditor
                         }
                     }
 
-                    if (isWotlkOrGreater)
+                    if (isWotlkOrGreater && row.Table.Columns.Contains("AttributesEx7"))
                     {
                         maskk = 0;
                         flagg = 1;
@@ -1816,14 +1816,18 @@ namespace SpellEditor
                     row["TargetAuraState"] = TargetAuraState.SelectedIndex;
                     row["CasterAuraStateNot"] = CasterAuraStateNot.SelectedIndex;
                     row["TargetAuraStateNot"] = TargetAuraStateNot.SelectedIndex;
-                    row["CasterAuraSpell"] = spellRefValues[1];
-                    row["TargetAuraSpell"] = spellRefValues[2];
-                    row["ExcludeCasterAuraSpell"] = spellRefValues[3];
-                    row["ExcludeTargetAuraSpell"] = spellRefValues[4];
+                    if (isWotlkOrGreater && row.Table.Columns.Contains("CasterAuraSpell"))
+                    {
+                        row["CasterAuraSpell"] = spellRefValues[1];
+                        row["TargetAuraSpell"] = spellRefValues[2];
+                        row["ExcludeCasterAuraSpell"] = spellRefValues[3];
+                        row["ExcludeTargetAuraSpell"] = spellRefValues[4];
+                    }
                     row["MinimumFactionId"] = uint.Parse(MinimumFactionId.Text);
                     row["MinimumReputation"] = MinimumReputation.SelectedIndex;
                     row["RequiredAuraVision"] = uint.Parse(RequiredAuraVision.Text);
-                    row["PowerDisplayId"] = uint.Parse(PowerDisplayId.Text);
+                    if (isWotlkOrGreater && row.Table.Columns.Contains("PowerDisplayId"))
+                        row["PowerDisplayId"] = uint.Parse(PowerDisplayId.Text);
 
                     row["RecoveryTime"] = uint.Parse(RecoveryTime.Text);
                     row["CategoryRecoveryTime"] = uint.Parse(CategoryRecoveryTime.Text);
@@ -3399,7 +3403,7 @@ namespace SpellEditor
                         }
                     }
                 }
-                if (isWotlkOrGreater)
+                if (isWotlkOrGreater && row.Table.Columns.Contains("AttributesEx7"))
                 {
                     mask = uint.Parse(row["AttributesEx7"].ToString());
                     flagg = 1;
@@ -3412,7 +3416,11 @@ namespace SpellEditor
                 }
                 attributes5.ForEach(box => box.IsEnabled = isTbcOrGreater);
                 attributes6.ForEach(box => box.IsEnabled = isTbcOrGreater);
-                attributes7.ForEach(box => box.IsEnabled = isWotlkOrGreater);
+                attributes7.ForEach(box => box.IsEnabled = isWotlkOrGreater && row.Table.Columns.Contains("AttributesEx7"));
+                AttributesEx7Label.IsEnabled = isWotlkOrGreater && row.Table.Columns.Contains("AttributesEx7");
+                AttributesEx7Label.ToolTip = AttributesEx7Label.IsEnabled
+                    ? SafeTryFindResource("labAttributesEx7")
+                    : "Not present in the TBC 2.4.3 Spell.dbc layout (WotLK+ only).";
                 stancesBoxes.ForEach(box => box.IsEnabled = isTbcOrGreater);
                 stancesNotBoxes.ForEach(box => box.IsEnabled = isTbcOrGreater);
 
@@ -3468,14 +3476,27 @@ namespace SpellEditor
                 TargetAuraState.ThreadSafeIndex = uint.Parse(row["TargetAuraState"].ToString());
                 CasterAuraStateNot.ThreadSafeIndex = uint.Parse(row["CasterAuraStateNot"].ToString());
                 TargetAuraStateNot.ThreadSafeIndex = uint.Parse(row["TargetAuraStateNot"].ToString());
-                SetSpellRef(1, uint.Parse(row["CasterAuraSpell"].ToString()));
-                SetSpellRef(2, uint.Parse(row["TargetAuraSpell"].ToString()));
-                SetSpellRef(3, uint.Parse(row["ExcludeCasterAuraSpell"].ToString()));
-                SetSpellRef(4, uint.Parse(row["ExcludeTargetAuraSpell"].ToString()));
+                var hasAuraSpellRequirements = isWotlkOrGreater && row.Table.Columns.Contains("CasterAuraSpell");
+                SetSpellRef(1, hasAuraSpellRequirements ? uint.Parse(row["CasterAuraSpell"].ToString()) : 0);
+                SetSpellRef(2, hasAuraSpellRequirements ? uint.Parse(row["TargetAuraSpell"].ToString()) : 0);
+                SetSpellRef(3, hasAuraSpellRequirements ? uint.Parse(row["ExcludeCasterAuraSpell"].ToString()) : 0);
+                SetSpellRef(4, hasAuraSpellRequirements ? uint.Parse(row["ExcludeTargetAuraSpell"].ToString()) : 0);
+                for (var spellRefIndex = 1; spellRefIndex <= 4; ++spellRefIndex)
+                {
+                    spellRefBoxes[spellRefIndex].IsEnabled = hasAuraSpellRequirements;
+                    spellRefPickButtons[spellRefIndex].IsEnabled = hasAuraSpellRequirements;
+                    spellRefNames[spellRefIndex].IsEnabled = hasAuraSpellRequirements;
+                }
+                CasterAuraSpellLabel.IsEnabled = CasterAuraSpellPanel.IsEnabled = hasAuraSpellRequirements;
+                TargetAuraSpellLabel.IsEnabled = TargetAuraSpellPanel.IsEnabled = hasAuraSpellRequirements;
+                ExcludeCasterAuraSpellLabel.IsEnabled = ExcludeCasterAuraSpellPanel.IsEnabled = hasAuraSpellRequirements;
+                ExcludeTargetAuraSpellLabel.IsEnabled = ExcludeTargetAuraSpellPanel.IsEnabled = hasAuraSpellRequirements;
                 MinimumFactionId.ThreadSafeText = uint.Parse(row["MinimumFactionId"].ToString());
                 MinimumReputation.ThreadSafeIndex = uint.Parse(row["MinimumReputation"].ToString());
                 RequiredAuraVision.ThreadSafeText = uint.Parse(row["RequiredAuraVision"].ToString());
-                PowerDisplayId.ThreadSafeText = uint.Parse(row["PowerDisplayId"].ToString());
+                var hasPowerDisplayId = isWotlkOrGreater && row.Table.Columns.Contains("PowerDisplayId");
+                PowerDisplayId.ThreadSafeText = hasPowerDisplayId ? uint.Parse(row["PowerDisplayId"].ToString()) : 0;
+                PowerDisplayId.IsEnabled = hasPowerDisplayId;
 
                 updateProgress("Updating cast time selection...");
                 var loadCastTimes = (SpellCastTimes)DBCManager.GetInstance().FindDbcForBinding("SpellCastTimes");
@@ -3867,6 +3888,9 @@ namespace SpellEditor
                 EffectBonusMultiplier1.IsEnabled = isWotlkOrGreater;
                 EffectBonusMultiplier2.IsEnabled = isWotlkOrGreater;
                 EffectBonusMultiplier3.IsEnabled = isWotlkOrGreater;
+                EffectBonusMultiplierLabel1.IsEnabled = isWotlkOrGreater;
+                EffectBonusMultiplierLabel2.IsEnabled = isWotlkOrGreater;
+                EffectBonusMultiplierLabel3.IsEnabled = isWotlkOrGreater;
                 if (isWotlkOrGreater)
                 {
                     SpellMissileID.ThreadSafeText = row["SpellMissileID"].ToString();
