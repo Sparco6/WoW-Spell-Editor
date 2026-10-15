@@ -25,14 +25,19 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             
-            <StackPanel Grid.Row="0" Margin="0,0,8,0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top" >
-                <Label Content="{DynamicResource labSpellClassMask1}" HorizontalAlignment="Left" VerticalAlignment="Top" />
-                <common:UIntTextBox ValueChanged="SpellMask_text_ValueChanged" x:Name="SpellMask1" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                <Label Content="{DynamicResource labSpellClassMask2}" HorizontalAlignment="Left" VerticalAlignment="Top" />
-                <common:UIntTextBox ValueChanged="SpellMask_text_ValueChanged" x:Name="SpellMask2" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                <Label Content="{DynamicResource labSpellClassMask3}" HorizontalAlignment="Left" VerticalAlignment="Top" />
-                <common:UIntTextBox ValueChanged="SpellMask_text_ValueChanged" x:Name="SpellMask3" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                <Label Content="You can rename the families by editing \SpellFamilies\ definitions." HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,0,10,0" />
+            <StackPanel Grid.Row="0" Margin="0,0,8,0">
+                <WrapPanel Orientation="Horizontal">
+                    <Label Content="{DynamicResource labSpellClassMask1}" VerticalAlignment="Center" />
+                    <common:UIntTextBox ValueChanged="SpellMask_text_ValueChanged" x:Name="SpellMask1" VerticalAlignment="Center" ToolTip="Unsigned decimal value"/>
+                    <TextBox TextChanged="SpellMaskHex_TextChanged" x:Name="SpellMaskHex1" Width="90" Margin="3,0,10,0" VerticalContentAlignment="Center" ToolTip="Raw hexadecimal value (0x00000000)"/>
+                    <Label Content="{DynamicResource labSpellClassMask2}" VerticalAlignment="Center" />
+                    <common:UIntTextBox ValueChanged="SpellMask_text_ValueChanged" x:Name="SpellMask2" VerticalAlignment="Center" ToolTip="Unsigned decimal value"/>
+                    <TextBox TextChanged="SpellMaskHex_TextChanged" x:Name="SpellMaskHex2" Width="90" Margin="3,0,10,0" VerticalContentAlignment="Center" ToolTip="Raw hexadecimal value (0x00000000)"/>
+                    <Label Content="{DynamicResource labSpellClassMask3}" VerticalAlignment="Center" />
+                    <common:UIntTextBox ValueChanged="SpellMask_text_ValueChanged" x:Name="SpellMask3" VerticalAlignment="Center" ToolTip="Unsigned decimal value"/>
+                    <TextBox TextChanged="SpellMaskHex_TextChanged" x:Name="SpellMaskHex3" Width="90" Margin="3,0,10,0" VerticalContentAlignment="Center" ToolTip="Raw hexadecimal value (0x00000000)"/>
+                </WrapPanel>
+                <TextBlock Text="Right click a family bit to rename it. Named bits come from the selected family definitions; unknown bits remain editable." Margin="5,3,0,0" TextWrapping="Wrap" />
             </StackPanel>
 
             <Grid Grid.Row="1" Margin="0,5,8,0">

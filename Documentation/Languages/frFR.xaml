@@ -212,8 +212,10 @@
     <system:String x:Key="CopySpellRecord4">Entrez le nouvel identifiant du sort.</system:String>
     <system:String x:Key="CopySpellRecord5">ERREUR: L'identifiant du sort saisi n'était pas un entier.</system:String>
     <system:String x:Key="CopySpellRecord6">ERREUR: cet identifiant est déjà pris.</system:String>
-    <system:String x:Key="CopySpellRecord7">La création d'un nouveau sort à partir de rien n'est actuellement pas implémentée. Veuillez copier un sort existant.</system:String>
-    <system:String x:Key="CopySpellRecord8">Nouveau sort créé avec succès sous l’ID {0}.</system:String>
+    <system:String x:Key="CopySpellRecord7">Utiliser les premiers identifiants disponibles</system:String>
+    <system:String x:Key="CopySpellRecord8">Nombre de copies :</system:String>
+    <system:String x:Key="CopySpellRecord9">ERREUR : le nombre de copies doit être un entier positif.</system:String>
+    <system:String x:Key="CopySpellRecord10">{0} nouvel enregistrement créé à partir de l’ID {1}.</system:String>
     <system:String x:Key="DeleteSpellRecord1">Entrez l'identifiant du sort à supprimer.</system:String>
     <system:String x:Key="DeleteSpellRecord2">ERREUR: L'identifiant du sort saisi n'était pas un entier.</system:String>
     <system:String x:Key="DeleteSpellRecord3">Sort supprimé avec succès.</system:String>

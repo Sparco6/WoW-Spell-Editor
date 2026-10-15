@@ -2,6 +2,7 @@
 using System.Data;
 using System.Data.SQLite;
 using System.Text;
+using System.IO;
 using SpellEditor.Sources.Binding;
 using System.Linq;
 using NLog;
@@ -19,10 +20,20 @@ namespace SpellEditor.Sources.Database
 
         public SQLite()
         {
-            var connectionString = $"Data Source ={Environment.CurrentDirectory}\\{Config.Config.SQLiteFilename}.db";
+            var connectionString = $"Data Source={ResolveDatabasePath(Config.Config.SQLiteFilename)}";
 
             _connection = new SQLiteConnection(connectionString);
             _connection.Open();
+        }
+
+        internal static string ResolveDatabasePath(string configuredPath)
+        {
+            var value = string.IsNullOrWhiteSpace(configuredPath) ? "SpellEditor" : configuredPath.Trim();
+            if (!Path.HasExtension(value))
+                value += ".db";
+            return Path.GetFullPath(Path.IsPathRooted(value)
+                ? value
+                : Path.Combine(Environment.CurrentDirectory, value));
         }
 
         public void Dispose()

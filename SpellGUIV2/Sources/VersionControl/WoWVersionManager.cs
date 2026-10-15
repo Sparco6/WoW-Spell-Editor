@@ -83,6 +83,11 @@ namespace SpellEditor.Sources.VersionControl
                             "StateKit",
                             "StateDoneKit",
                             "ChannelKit",
+                            "CasterImpactKit",
+                            "TargetImpactKit",
+                            "MissileTargetingKit",
+                            "InstantAreaKit",
+                            "ImpactAreaKit",
                         },
                         new string[]
                         {
@@ -93,7 +98,11 @@ namespace SpellEditor.Sources.VersionControl
                             "RightHandEffect",
                             "BreathEffect",
                             "LeftWeaponEffect",
-                            "RightWeaponEffect"
+                            "RightWeaponEffect",
+                            "SpecialEffect1",
+                            "SpecialEffect2",
+                            "SpecialEffect3",
+                            "WorldEffect"
                         });
                 case 335:
                     return new KeyResource(new string[]

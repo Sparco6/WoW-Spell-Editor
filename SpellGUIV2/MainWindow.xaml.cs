@@ -8,7 +8,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,6 +26,7 @@ using NLog.Layouts;
 using NLog.Targets;
 using SpellEditor.Sources.AI;
 using SpellEditor.Sources.Binding;
+using SpellEditor.Sources.BLP;
 using SpellEditor.Sources.Config;
 using SpellEditor.Sources.Constants;
 using SpellEditor.Sources.Controls;
@@ -41,6 +41,7 @@ using SpellEditor.Sources.Locale;
 using SpellEditor.Sources.SpellStringTools;
 using SpellEditor.Sources.Tools.SpellFamilyClassMaskStoreParser;
 using SpellEditor.Sources.Tools.VisualTools;
+using SpellEditor.Sources.Emulator;
 using SpellEditor.Sources.VersionControl;
 
 namespace SpellEditor
@@ -58,7 +59,12 @@ namespace SpellEditor
         private readonly List<ThreadSafeCheckBox> attributes5 = new List<ThreadSafeCheckBox>();
         private readonly List<ThreadSafeCheckBox> attributes6 = new List<ThreadSafeCheckBox>();
         private readonly List<ThreadSafeCheckBox> attributes7 = new List<ThreadSafeCheckBox>();
+        /// <summary>Emulator spell_custom_attr bits, shown next to the Spell.dbc attributes.</summary>
+        private readonly List<ThreadSafeCheckBox> customAttributes = new List<ThreadSafeCheckBox>();
+        /// <summary>The mask as read for the selected spell, null when it was never read.</summary>
+        private uint? loadedCustomAttributes;
         private readonly List<ThreadSafeCheckBox> stancesBoxes = new List<ThreadSafeCheckBox>();
+        private readonly List<ThreadSafeCheckBox> stancesNotBoxes = new List<ThreadSafeCheckBox>();
         private readonly List<ThreadSafeCheckBox> targetCreatureTypeBoxes = new List<ThreadSafeCheckBox>();
         private readonly List<ThreadSafeCheckBox> targetBoxes = new List<ThreadSafeCheckBox>();
         private readonly List<ThreadSafeCheckBox> procBoxes = new List<ThreadSafeCheckBox>();
@@ -73,11 +79,21 @@ namespace SpellEditor
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         private IDatabaseAdapter adapter;
-        public uint selectedID;
+        private uint _selectedID;
+        /// <summary>Zero means nothing is selected, which hides every spell editing tab.</summary>
+        public uint selectedID
+        {
+            get => _selectedID;
+            set
+            {
+                if (_selectedID == value)
+                    return;
+                _selectedID = value;
+                UpdateSpellTabVisibility();
+            }
+        }
         public uint newIconID = 1;
         private bool updating;
-        private DispatcherTimer _sliderDebounce;
-        private double _pendingSliderValue;
         private readonly SpellStringParser SpellStringParser = new SpellStringParser();
 
         private readonly List<ThreadSafeTextBox> spellDescGenFields = new List<ThreadSafeTextBox>();
@@ -89,9 +105,14 @@ namespace SpellEditor
         private FilteredComboBox[] spellEffectTypeBoxes;
         private ThreadSafeTextBox[] effectMultipleValueBoxes;
         private FilteredComboBox[] effectAuraNameBoxes;
+        private List<string> versionedSpellEffectEntries = new List<string>();
+        private List<string> versionedAuraEntries = new List<string>();
+        private List<string> versionedTargetEntries = new List<string>();
         private ThreadSafeTextBox[] effectChainTargetBoxes;
         private ThreadSafeTextBox[] effectItemTypeBoxes;
-        private Button[] effectTriggerSpellBoxes;
+        private UIntTextBox[] effectTriggerSpellBoxes;
+        private Button[] effectTriggerSpellPickButtons;
+        private TextBlock[] effectTriggerSpellNames;
         private ThreadSafeTextBox[] effectAmplitudeBoxes;
         private Label[] miscValueLabelA;
         private ContentControl[] miscValueDynamicContentsA;
@@ -114,7 +135,23 @@ namespace SpellEditor
 
         private uint[] effectTriggerSpells = new uint[3];
 
-        bool _use_picker_dialogs = true;
+        // Everything that only makes sense with a spell selected
+        private TabItem[] spellEditorTabs;
+
+        // Spell references outside of the effects: ModalNextSpell, CasterAuraSpell,
+        // TargetAuraSpell, ExcludeCasterAuraSpell, ExcludeTargetAuraSpell
+        private UIntTextBox[] spellRefBoxes;
+        private Button[] spellRefPickButtons;
+        private TextBlock[] spellRefNames;
+        private readonly uint[] spellRefValues = new uint[5];
+        private static readonly string[] SpellRefLabels =
+        {
+            "Modal Next Spell",
+            "Caster Aura Spell",
+            "Target Aura Spell",
+            "Exclude Caster Aura Spell",
+            "Exclude Target Aura Spell"
+        };
 
         #endregion
 
@@ -126,6 +163,30 @@ namespace SpellEditor
         private void VerifyStaticData()
         {
             MiscValueConstants.VerifyData();
+        }
+
+        /// <summary>
+        /// Rebuilds a version-limited enum before selecting its value. A malformed or foreign-version
+        /// value already present in a DBC remains visible and round-trippable, but is clearly marked
+        /// and is never offered while authoring a normal TBC spell.
+        /// </summary>
+        private static uint GetNumberPrefix(ThreadSafeComboBox box)
+        {
+            var text = (box.SelectedItem?.ToString() ?? box.Text ?? string.Empty).TrimStart();
+            var digits = new string(text.TakeWhile(char.IsDigit).ToArray());
+            return uint.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : 0;
+        }
+
+        private static void SetVersionedEnumValue(ThreadSafeComboBox box, IReadOnlyList<string> supported,
+            uint value, string valueKind)
+        {
+            var entries = new List<string>(supported ?? Array.Empty<string>());
+            var prefix = value.ToString(CultureInfo.InvariantCulture) + " - ";
+            if (!entries.Any(entry => entry.StartsWith(prefix, StringComparison.Ordinal)))
+                entries.Add($"{value} - Unsupported {valueKind} for the selected WoW version (preserved)");
+
+            box.ItemsSource = entries;
+            box.ThreadSafeIndex = entries.FindIndex(entry => entry.StartsWith(prefix, StringComparison.Ordinal));
         }
 
         public MainWindow()
@@ -181,11 +242,43 @@ namespace SpellEditor
             effectChainTargetBoxes = new[] { ChainTarget1, ChainTarget2, ChainTarget3 };
             effectItemTypeBoxes = new[] { ItemType1, ItemType2, ItemType3 };
             effectTriggerSpellBoxes = new[] { TriggerSpell1, TriggerSpell2, TriggerSpell3 };
+            effectTriggerSpellPickButtons = new[] { TriggerSpellPick1, TriggerSpellPick2, TriggerSpellPick3 };
+            effectTriggerSpellNames = new[] { TriggerSpellName1, TriggerSpellName2, TriggerSpellName3 };
             effectAmplitudeBoxes = new[] { Amplitude1, Amplitude2, Amplitude3 };
+            spellRefBoxes = new[] { ModalNextSpell, CasterAuraSpell, TargetAuraSpell, ExcludeCasterAuraSpell, ExcludeTargetAuraSpell };
+            spellRefPickButtons = new[] { ModalNextSpellPick, CasterAuraSpellPick, TargetAuraSpellPick, ExcludeCasterAuraSpellPick, ExcludeTargetAuraSpellPick };
+            spellRefNames = new[] { ModalNextSpellName, CasterAuraSpellName, TargetAuraSpellName, ExcludeCasterAuraSpellName, ExcludeTargetAuraSpellName };
             miscValueLabelA = new[] { LabMiscValueA1, LabMiscValueA2, LabMiscValueA3 };
             miscValueDynamicContentsA = new[] { MiscValueA1DynamicContent, MiscValueA2DynamicContent, MiscValueA3DynamicContent };
             miscValueLabelB = new[] { LabMiscValueB1, LabMiscValueB2, LabMiscValueB3 };
             miscValueDynamicContentsB = new[] { MiscValueB1DynamicContent, MiscValueB2DynamicContent, MiscValueB3DynamicContent };
+            spellEditorTabs = new[] { BaseTab, Effects1Tab, Effects2Tab, ItemsTab, FlagsTab, IconTab, ReqsTab, VisualTab };
+
+            ConfigureVisualVersionUi();
+
+            UpdateSpellTabVisibility();
+        }
+
+        private void ConfigureVisualVersionUi()
+        {
+            var wotlk = WoWVersionManager.IsWotlkOrGreaterSelected;
+            VisualMotionTab.Visibility = wotlk ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var element in new UIElement[]
+            {
+                VisualMissileCastOffsetXLabel, VisualMissileCastOffsetXTxt,
+                VisualMissileCastOffsetYLabel, VisualMissileCastOffsetYTxt,
+                VisualMissileCastOffsetZLabel, VisualMissileCastOffsetZTxt,
+                VisualMissileImpactOffsetXLabel, VisualMissileImpactOffsetXTxt,
+                VisualMissileImpactOffsetYLabel, VisualMissileImpactOffsetYTxt,
+                VisualMissileImpactOffsetZLabel, VisualMissileImpactOffsetZTxt,
+                VisualEffectMinAllowedScaleLabel, VisualEffectMinAllowedScaleTxt,
+                VisualEffectMaxAllowedScaleLabel, VisualEffectMaxAllowedScaleTxt
+            })
+                element.Visibility = wotlk ? Visibility.Visible : Visibility.Collapsed;
+
+            // SpellVisualKitModelAttach is a WotLK table. Collapse its editor columns in TBC.
+            VisualKitEffectEditorGrid.ColumnDefinitions[2].Width = wotlk ? GridLength.Auto : new GridLength(0);
+            VisualKitEffectEditorGrid.ColumnDefinitions[3].Width = wotlk ? GridLength.Auto : new GridLength(0);
         }
 
         ~MainWindow()
@@ -230,125 +323,36 @@ namespace SpellEditor
         #region LanguageSwitch
         private void RefreshAllUIElements()
         {
-            Attributes1.Children.Clear();
-            attributes0.Clear();
-            string[] attFlags = SafeTryFindResource("attFlags_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
+            BuildAttributeBoxes(Attributes1, attributes0, "Attributes", "attFlags_strings");
+            BuildAttributeBoxes(Attributes2, attributes1, "AttributesEx", "attFlagsEx_strings");
+            BuildAttributeBoxes(Attributes3, attributes2, "AttributesEx2", "attFlagsEx1_strings");
+            BuildAttributeBoxes(Attributes4, attributes3, "AttributesEx3", "attFlagsEx2_strings");
+            BuildAttributeBoxes(Attributes5, attributes4, "AttributesEx4", "attFlagsEx3_strings");
+            BuildAttributeBoxes(Attributes6, attributes5, "AttributesEx5", "attFlagsEx4_strings");
+            BuildAttributeBoxes(Attributes7, attributes6, "AttributesEx6", "attFlagsEx5_strings");
+            BuildAttributeBoxes(Attributes8, attributes7, "AttributesEx7", "attFlagsEx6_strings");
 
-                Attributes1.Children.Add(box);
-                attributes0.Add(box);
-            }
-
-            Attributes2.Children.Clear();
-            attributes1.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes2.Children.Add(box);
-                attributes1.Add(box);
-            }
-
-            Attributes3.Children.Clear();
-            attributes2.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx1_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes3.Children.Add(box);
-                attributes2.Add(box);
-            }
-
-            Attributes4.Children.Clear();
-            attributes3.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx2_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes4.Children.Add(box);
-                attributes3.Add(box);
-            }
-
-            Attributes5.Children.Clear();
-            attributes4.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx3_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes5.Children.Add(box);
-                attributes4.Add(box);
-            }
-
-            Attributes6.Children.Clear();
-            attributes5.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx4_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes6.Children.Add(box);
-                attributes5.Add(box);
-            }
-
-            Attributes7.Children.Clear();
-            attributes6.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx5_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes7.Children.Add(box);
-                attributes6.Add(box);
-            }
-
-            Attributes8.Children.Clear();
-            attributes7.Clear();
-            attFlags = SafeTryFindResource("attFlagsEx6_strings").Split('|');
-            foreach (string attFlag in attFlags)
-            {
-                ThreadSafeCheckBox box = new ThreadSafeCheckBox
-                {
-                    Content = attFlag, ToolTip = attFlag, Margin = new Thickness(0, 5, 0, 0)
-                };
-
-                Attributes8.Children.Add(box);
-                attributes7.Add(box);
-            }
+            // From spell_custom_attr rather than the DBC, see SaveCustomAttributes
+            RefreshCustomAttributeBoxes();
 
             CasterAuraState.Items.Clear();
-            string[] caster_aura_state_strings = SafeTryFindResource("aura_state_strings").Split('|');
+            string[] caster_aura_state_strings = WoWVersionManager.GetInstance().SelectedVersion().Identity == 243
+                ? new[] { "None", "Defense", "Health below 20%", "Berserking", "Frozen", "Judgement", "Unused 6", "Hunter parry / Rogue stealth attack", "Unused 8", "Unused 9", "Victory Rush / Hunter critical strike", "Critical", "Faerie Fire", "Health below 35%", "Conflagrate", "Swiftmend", "Deadly Poison", "Forbearance", "Weakened Soul", "Hypothermia" }
+                : SafeTryFindResource("aura_state_strings").Split('|');
             foreach (string casterAuraState in caster_aura_state_strings) { CasterAuraState.Items.Add(casterAuraState); }
 
             TargetAuraState.Items.Clear();
             string[] target_aura_state_strings = SafeTryFindResource("aura_state_strings").Split('|');
             foreach (string targetAuraState in target_aura_state_strings) { TargetAuraState.Items.Add(targetAuraState); }
+
+            CasterAuraStateNot.Items.Clear();
+            foreach (string auraState in caster_aura_state_strings) { CasterAuraStateNot.Items.Add(auraState); }
+
+            TargetAuraStateNot.Items.Clear();
+            foreach (string auraState in target_aura_state_strings) { TargetAuraStateNot.Items.Add(auraState); }
+
+            MinimumReputation.Items.Clear();
+            foreach (string rank in SafeTryFindResource("reputation_rank_strings").Split('|')) { MinimumReputation.Items.Add(rank); }
 
             EquippedItemInventoryTypeGrid.Children.Clear();
             equippedItemInventoryTypeMaskBoxes.Clear();
@@ -383,6 +387,8 @@ namespace SpellEditor
             PowerType.Items.Clear();
 
             string[] power_type_strings = SafeTryFindResource("power_type_strings").Split('|');
+            if (WoWVersionManager.GetInstance().SelectedVersion().Identity == 243)
+                power_type_strings = power_type_strings.Take(5).Concat(new[] { "Health" }).ToArray();
             foreach (string powerString in power_type_strings) { PowerType.Items.Add(powerString); }
 
             SpellDamageType.Items.Clear();
@@ -437,11 +443,15 @@ namespace SpellEditor
 
 
             string[] spell_aura_effect_names = SafeTryFindResource("spell_aura_effect_names").Split('|');
-            string[] comboEntries = new string[spell_aura_effect_names.Length];
-            for (int i = 0; i < spell_aura_effect_names.Length; ++i)
+            var auraCount = WoWVersionManager.GetInstance().SelectedVersion().Identity == 243
+                ? Math.Min(262, spell_aura_effect_names.Length)
+                : spell_aura_effect_names.Length;
+            string[] comboEntries = new string[auraCount];
+            for (int i = 0; i < auraCount; ++i)
             {
                 comboEntries[i] = i + " - " + spell_aura_effect_names[i];
             }
+            versionedAuraEntries = new List<string>(comboEntries);
             ApplyAuraName1.ItemsSource = new List<string>(comboEntries);
             ApplyAuraName2.ItemsSource = new List<string>(comboEntries);
             ApplyAuraName3.ItemsSource = new List<string>(comboEntries);
@@ -449,11 +459,22 @@ namespace SpellEditor
             FilterAuraCombo.ItemsSource = new List<string>(comboEntries);
 
             string[] spell_effect_names = SafeTryFindResource("spell_effect_names_clear").Split('|');
-            comboEntries = new string[spell_effect_names.Length];
-            for (int i = 0; i < spell_effect_names.Length; ++i)
+            var effectCount = WoWVersionManager.GetInstance().SelectedVersion().Identity == 243
+                ? Math.Min(154, spell_effect_names.Length)
+                : spell_effect_names.Length;
+            comboEntries = new string[effectCount];
+            for (int i = 0; i < effectCount; ++i)
             {
-                comboEntries[i] = i + " - " + spell_effect_names[i];
+                var displayName = spell_effect_names[i].Trim();
+                if (WoWVersionManager.GetInstance().SelectedVersion().Identity == 243)
+                {
+                    var wotlk = displayName.IndexOf("WOTLK", StringComparison.OrdinalIgnoreCase);
+                    if (wotlk >= 0)
+                        displayName = displayName.Substring(0, wotlk).Trim().TrimEnd(',', ':');
+                }
+                comboEntries[i] = i + " - " + displayName;
             }
+            versionedSpellEffectEntries = new List<string>(comboEntries);
             SpellEffect1.ItemsSource = new List<string>(comboEntries);
             SpellEffect2.ItemsSource = new List<string>(comboEntries);
             SpellEffect3.ItemsSource = new List<string>(comboEntries);
@@ -464,16 +485,17 @@ namespace SpellEditor
             Mechanic2.Items.Clear();
             Mechanic3.Items.Clear();
 
-            if (TargetA1.Items.Count == 0)
             {
-                int number = 0;
                 var comboList = new List<string>();
                 foreach (Targets t in System.Enum.GetValues(typeof(Targets)))
                 {
-                    comboList.Add(number + " - " + t);
-                    ++number;
+                    var value = (int)t;
+                    if (WoWVersionManager.GetInstance().SelectedVersion().Identity == 243 && value >= 94)
+                        continue;
+                    comboList.Add(value + " - " + t);
                 }
 
+                versionedTargetEntries = new List<string>(comboList);
                 TargetA1.ItemsSource = new List<string>(comboList);
                 TargetB1.ItemsSource = new List<string>(comboList);
                 TargetA2.ItemsSource = new List<string>(comboList);
@@ -554,6 +576,42 @@ namespace SpellEditor
             SpellFamilyName.SelectedIndex = 0;
         }
 
+        private void BuildAttributeBoxes(Panel panel, List<ThreadSafeCheckBox> boxes, string field, string resourceKey)
+        {
+            panel.Children.Clear();
+            boxes.Clear();
+
+            var catalogEntries = SpellAttributeCatalog.ForField(field);
+            if (catalogEntries != null)
+            {
+                foreach (var entry in catalogEntries.OrderBy(entry => entry.BitIndex))
+                {
+                    var box = new ThreadSafeCheckBox
+                    {
+                        Content = entry.DisplayName,
+                        ToolTip = entry.Tooltip,
+                        Tag = entry.BitIndex,
+                        Margin = new Thickness(0, 5, 0, 0)
+                    };
+                    panel.Children.Add(box);
+                    boxes.Add(box);
+                }
+                return;
+            }
+
+            foreach (var label in SafeTryFindResource(resourceKey).Split('|'))
+            {
+                var box = new ThreadSafeCheckBox
+                {
+                    Content = label,
+                    ToolTip = label,
+                    Margin = new Thickness(0, 5, 0, 0)
+                };
+                panel.Children.Add(box);
+                boxes.Add(box);
+            }
+        }
+
         #endregion
 
         #region Loaded
@@ -563,8 +621,8 @@ namespace SpellEditor
 
             try
             {
-                var version = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
-                Title = $"{Title} - {WoWVersionManager.GetInstance().SelectedVersion().Version} - V{version.Substring(0, version.Length - 2)}";
+                var version = Assembly.GetExecutingAssembly().GetName().Version;
+                Title = $"{Title} - {WoWVersionManager.GetInstance().SelectedVersion().Version} - V{version.Major}.{version.Minor}.{version.Build}";
 
                 stringObjectMap.Add(0, SpellName0);
                 stringObjectMap.Add(1, SpellName1);
@@ -719,7 +777,7 @@ namespace SpellEditor
                 _ImportExportWindow.Show();
                 return;
             }
-            var window = new ImportExportWindow(adapter, PopulateSelectSpell, LoadAllRequiredDbcs);
+            var window = new ImportExportWindow(adapter, () => PopulateSelectSpell(), LoadAllRequiredDbcs);
             window.Show();
             window.Height += 40;
             window.Width /= 2;
@@ -735,25 +793,27 @@ namespace SpellEditor
 
         private void LogBookWindowButtonClick(object sender, RoutedEventArgs e)
         {
-            if (_LogBookWindow != null)
+            if (_LogBookWindow != null && _LogBookWindow.IsLoaded)
             {
                 _LogBookWindow.Visibility = Visibility.Visible;
-                _LogBookWindow.Show();
+                _LogBookWindow.Activate();
                 return;
             }
             var window = new LogBookWindow(UpdateSelectionFromLogBook);
+            window.Closed += (_, __) => _LogBookWindow = null;
             window.Show();
             _LogBookWindow = window;
         }
 
         private void UpdateLogBookEntry(StackPanel panel)
         {
-            if (_LogBookWindow == null)
+            if (_LogBookWindow == null || !_LogBookWindow.IsLoaded)
             {
                 _LogBookWindow = new LogBookWindow(UpdateSelectionFromLogBook)
                 {
                     Visibility = Visibility.Hidden
                 };
+                _LogBookWindow.Closed += (_, __) => _LogBookWindow = null;
                 _LogBookWindow.Show();
                 _LogBookWindow.UpdateLayout();
             }
@@ -780,16 +840,8 @@ namespace SpellEditor
 
         public void ReloadCurrentSpellFromDatabase()
         {
-            try
-            {
-                updating = true;
-                // Silent progress updater
-                loadSpell(_ => { });
-            }
-            finally
-            {
-                updating = false;
-            }
+            SpellDBC.InvalidateRecord(selectedID);
+            UpdateMainWindow();
         }
 
         public void ApplyAiSpellDefinition(AiSpellDefinition def)
@@ -874,6 +926,11 @@ namespace SpellEditor
         #region ConfigButton
         private ConfigWindow ConfigWindowInstance;
 
+        /// <summary>
+        /// Opens the settings window, used by panels that need the user to fill something in.
+        /// </summary>
+        public void ShowConfigWindow() => ConfigButtonClick(this, null);
+
         private void ConfigButtonClick(object sender, RoutedEventArgs e)
         {
             if (ConfigWindowInstance != null && ConfigWindowInstance.IsLoaded)
@@ -916,6 +973,10 @@ namespace SpellEditor
                 incompleteCount = tasks.Where(t => !t.IsCompleted).Count();
             }
 
+            // Propagate the original DBC/binding failure instead of continuing with a null
+            // dependency and reporting a misleading NullReferenceException.
+            Task.WaitAll(tasks.Cast<Task>().ToArray());
+
             setMessage?.Invoke("Loading dependent DBCs...");
 
             if (WoWVersionManager.IsWotlkOrGreaterSelected)
@@ -924,10 +985,13 @@ namespace SpellEditor
                 manager.InjectLoadedDbc("AreaGroup", new AreaGroup(((AreaTable)manager.FindDbcForBinding("AreaTable")).Lookups));
             }
 
-            Task.Run(() =>
+            // Cheap to build, it only indexes a spell family once that family is asked about
+            spellFamilyClassMaskParser = new SpellFamilyClassMaskParser(GetDBAdapter());
+            if (Config.CacheAllOnLoad)
             {
-                spellFamilyClassMaskParser = new SpellFamilyClassMaskParser(GetDBAdapter());
-            });
+                setMessage?.Invoke("Caching spell family class masks...");
+                Task.Run(() => spellFamilyClassMaskParser.CacheAllFamilies());
+            }
         }
 
         private async void LoadAllData()
@@ -1100,6 +1164,17 @@ namespace SpellEditor
 
                     StancesGrid.Children.Add(box);
                     stancesBoxes.Add(box);
+
+                    // StancesNot is a separate exclusion mask over the same shapeshift forms
+                    ThreadSafeCheckBox notBox = new ThreadSafeCheckBox
+                    {
+                        Content = stance.ToString(),
+                        ToolTip = stance.ToString(),
+                        Margin = new Thickness(0, 5, 0, 0)
+                    };
+
+                    StancesNotGrid.Children.Add(notBox);
+                    stancesNotBoxes.Add(notBox);
                 }
 
                 var creatureTypeDbc = DBCManager.GetInstance().FindDbcForBinding("CreatureType");
@@ -1176,8 +1251,9 @@ namespace SpellEditor
                 controller.SetMessage("Waiting for table creation to finish...");
                 await createTask;
             }*/
+            controller.SetMessage("Loading spell list...");
+            await PopulateSelectSpell();
             await controller.CloseAsync();
-            PopulateSelectSpell();
             await CheckAndOfferAutoImport();
         }
 
@@ -1185,7 +1261,7 @@ namespace SpellEditor
         {
             try
             {
-                var count = uint.Parse(adapter.Query("SELECT COUNT(*) FROM `spell`").Rows[0][0].ToString());
+                var count = uint.Parse((await adapter.QuerySingleValueAsync("SELECT COUNT(*) FROM `spell`")).ToString());
                 if (count > 0)
                     return;
 
@@ -1203,7 +1279,7 @@ namespace SpellEditor
                 if (res != MessageDialogResult.Affirmative)
                     return;
 
-                var window = new ImportExportWindow(adapter, PopulateSelectSpell, LoadAllRequiredDbcs);
+                var window = new ImportExportWindow(adapter, () => PopulateSelectSpell(), LoadAllRequiredDbcs);
                 window.Show();
                 window.Height += 40;
                 window.Width /= 2;
@@ -1413,36 +1489,149 @@ namespace SpellEditor
             }
             else if (sender == FilterIcons)
             {
-                var input = FilterIcons.Text.ToLower();
-                foreach (System.Windows.Controls.Image image in IconGrid.Children)
-                {
-                    var name = image.ToolTip.ToString().ToLower();
-                    image.Visibility = name.Contains(input) ? Visibility.Visible : Visibility.Collapsed;
-                }
+                ((SpellIconDBC)DBCManager.GetInstance().FindDbcForBinding("SpellIcon"))?.SetIconFilter(FilterIcons.Text);
             }
-            else if (sender == Attributes1Search || sender == Attributes2Search)
+            else if (sender == Attributes1Search)
             {
-                var input = sender == Attributes1Search ? 
-                    Attributes1Search.Text.ToLower() : 
-                    Attributes2Search.Text.ToLower();
-                var controls = sender == Attributes1Search ? 
-                    new StackPanel[] { Attributes1, Attributes2, Attributes3, Attributes4 } :
-                    new StackPanel[] { Attributes5, Attributes6, Attributes7, Attributes8 };
+                ApplyAttributes1Filter();
+            }
+            else if (sender == Attributes2Search)
+            {
+                ApplyAttributes2Filter();
+            }
+        }
 
-                for (int i = 0; i < controls.Length; ++i)
+        #region Flag list filtering
+        private void FlagFilter_Changed(object sender, RoutedEventArgs e)
+        {
+            if (sender == Attributes1CheckedOnly)
+                ApplyAttributes1Filter();
+            else if (sender == Attributes2CheckedOnly)
+                ApplyAttributes2Filter();
+            else if (sender == InterruptsCheckedOnly)
+                ApplyInterruptsFilter();
+            else if (sender == MiscFlagsCheckedOnly)
+                ApplyMiscFlagsFilter();
+        }
+
+        private void ApplyAttributes1Filter() => ApplyFlagFilter(Attributes1CheckedOnly, Attributes1Search,
+            Attributes1, Attributes2, Attributes3, Attributes4);
+
+        private void ApplyAttributes2Filter() => ApplyFlagFilter(Attributes2CheckedOnly, Attributes2Search,
+            Attributes5, Attributes6, Attributes7, Attributes8, CustomAttributes);
+
+        private void ApplyInterruptsFilter() => ApplyFlagFilter(InterruptsCheckedOnly, null,
+            InterruptFlagsGrid, AuraInterruptFlagsGrid, ChannelInterruptFlagsGrid);
+
+        private void ApplyMiscFlagsFilter() => ApplyFlagFilter(MiscFlagsCheckedOnly, null,
+            TargetCreatureType, StancesGrid, StancesNotGrid);
+
+        /// <summary>Every flag list, for after the boxes have been filled in for a different spell.</summary>
+        private void ApplyFlagFilters()
+        {
+            ApplyAttributes1Filter();
+            ApplyAttributes2Filter();
+            ApplyInterruptsFilter();
+            ApplyMiscFlagsFilter();
+        }
+
+        /// <summary>
+        /// Search text and the only checked box narrow the same lists, so both go through here.
+        /// The checked filter is only reapplied on a filter change or a spell load, a box must not
+        /// vanish from under the pointer the moment it is cleared.
+        /// </summary>
+        private void ApplyFlagFilter(ThreadSafeCheckBox checkedOnly, ThreadSafeTextBox search, params StackPanel[] panels)
+        {
+            var input = search?.Text.ToLower() ?? string.Empty;
+            var onlyChecked = checkedOnly?.IsChecked == true;
+
+            foreach (var panel in panels)
+            {
+                foreach (var child in panel.Children)
                 {
-                    foreach (ThreadSafeCheckBox box in controls[i].Children)
-                    {
-                        box.Visibility = box.Content.ToString().Length <= 0 || box.Content.ToString().ToLower().Contains(input) ?
-                            Visibility.Visible :
-                            Visibility.Collapsed;
-                    }
+                    if (!(child is ThreadSafeCheckBox box))
+                        continue;
+
+                    var label = box.Content?.ToString() ?? string.Empty;
+                    var matchesSearch = label.Length == 0 || label.ToLower().Contains(input);
+                    var matchesChecked = !onlyChecked || box.IsChecked == true;
+                    box.Visibility = matchesSearch && matchesChecked ? Visibility.Visible : Visibility.Collapsed;
                 }
             }
         }
         #endregion
+        #endregion
 
         #region ButtonClicks (and load spell god-function)
+        private async Task<(bool Success, uint SourceId, List<uint> NewIds)> ShowCopySpellDialog()
+        {
+            var dialog = new CustomDialog();
+            var view = new CopySpellDialog();
+            if (selectedID > 0)
+                view.OldIdInput.Text = selectedID.ToString(CultureInfo.InvariantCulture);
+            dialog.Content = view;
+
+            await this.ShowMetroDialogAsync(dialog);
+            var completion = new TaskCompletionSource<(bool, uint, List<uint>)>();
+            view.OkButton.Click += async (_, __) =>
+            {
+                if (!uint.TryParse(view.OldIdInput.Text, out var sourceId) || !SelectSpell.HasSpell(sourceId))
+                {
+                    HandleErrorMessage(SafeTryFindResource("CopySpellRecord3"));
+                    return;
+                }
+                if (!uint.TryParse(view.AmountInput.Text, out var amount) || amount == 0 || amount > int.MaxValue)
+                {
+                    HandleErrorMessage(SafeTryFindResource("CopySpellRecord9"));
+                    return;
+                }
+
+                var useFirstAvailable = view.FirstAvailableBox.IsChecked == true;
+                if (!uint.TryParse(view.NewIdInput.Text, out var startId))
+                {
+                    if (!useFirstAvailable)
+                    {
+                        HandleErrorMessage(SafeTryFindResource("CopySpellRecord5"));
+                        return;
+                    }
+                    startId = 1;
+                }
+
+                List<uint> newIds;
+                if (useFirstAvailable)
+                {
+                    newIds = SelectSpell.GetFirstAvailableSpellIds(startId, amount);
+                }
+                else
+                {
+                    var lastId = (ulong)startId + amount - 1;
+                    if (lastId > uint.MaxValue)
+                    {
+                        HandleErrorMessage(SafeTryFindResource("CopySpellRecord5"));
+                        return;
+                    }
+                    using (var conflicts = adapter.Query($"SELECT COUNT(*) FROM `spell` WHERE `ID` BETWEEN {startId} AND {lastId}"))
+                    {
+                        if (Convert.ToUInt32(conflicts.Rows[0][0], CultureInfo.InvariantCulture) > 0)
+                        {
+                            HandleErrorMessage(SafeTryFindResource("CopySpellRecord6"));
+                            return;
+                        }
+                    }
+                    newIds = Enumerable.Range(0, (int)amount).Select(offset => startId + (uint)offset).ToList();
+                }
+
+                await this.HideMetroDialogAsync(dialog);
+                completion.SetResult((true, sourceId, newIds));
+            };
+            view.CancelButton.Click += async (_, __) =>
+            {
+                await this.HideMetroDialogAsync(dialog);
+                completion.SetResult((false, 0, new List<uint>()));
+            };
+            return await completion.Task;
+        }
+
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
             if (adapter == null)
@@ -1474,59 +1663,12 @@ namespace SpellEditor
 
             if (sender == InsertANewRecord)
             {
-                MetroDialogSettings settings = new MetroDialogSettings
-                {
-                    AffirmativeButtonText = SafeTryFindResource("Yes"),
-                    NegativeButtonText = SafeTryFindResource("No")
-                };
-
-
-                MessageDialogStyle style = MessageDialogStyle.AffirmativeAndNegative;
-                MessageDialogResult copySpell = await this.ShowMessageAsync(SafeTryFindResource("SpellEditor"), SafeTryFindResource("CopySpellRecord1"), style, settings);
-
-                uint oldIDIndex = uint.MaxValue;
-
-                if (copySpell == MessageDialogResult.Affirmative)
-                {
-                    string inputCopySpell = await this.ShowInputAsync(SafeTryFindResource("SpellEditor"), SafeTryFindResource("CopySpellRecord2"));
-                    if (inputCopySpell == null) { return; }
-
-                    if (!uint.TryParse(inputCopySpell, out var oldID))
-                    {
-                        HandleErrorMessage(SafeTryFindResource("CopySpellRecord3"));
-                        return;
-                    }
-                    oldIDIndex = oldID;
-                }
-
-                string inputNewRecord = await this.ShowInputAsync(SafeTryFindResource("SpellEditor"), SafeTryFindResource("CopySpellRecord4"));
-                if (inputNewRecord == null) { return; }
-
-                if (!uint.TryParse(inputNewRecord, out var newID))
-                {
-                    HandleErrorMessage(SafeTryFindResource("CopySpellRecord5"));
+                var result = await ShowCopySpellDialog();
+                if (!result.Success)
                     return;
-                }
-
-                if (uint.Parse(adapter.Query($"SELECT COUNT(*) FROM `spell` WHERE `ID` = '{newID}'").Rows[0][0].ToString()) > 0)
-                {
-                    HandleErrorMessage(SafeTryFindResource("CopySpellRecord6"));
-                    return;
-                }
-
-                if (oldIDIndex != uint.MaxValue)
-                {
-                    // Copy old spell to new spell
-                    SelectSpell.AddNewSpell(oldIDIndex, newID);
-                }
-                else
-                {
-                    // Create new spell
-                    HandleErrorMessage(SafeTryFindResource("CopySpellRecord7"));
-                    return;
-                }
-
-                ShowFlyoutMessage(string.Format(SafeTryFindResource("CopySpellRecord8"), inputNewRecord));
+                foreach (var newId in result.NewIds)
+                    SelectSpell.AddNewSpell(result.SourceId, newId);
+                ShowFlyoutMessage(string.Format(SafeTryFindResource("CopySpellRecord10"), result.NewIds.Count, result.NewIds[0]));
                 return;
             }
 
@@ -1664,9 +1806,28 @@ namespace SpellEditor
 
                             row["Stances"] = mask;
                         }
+
+                        if (stancesNotBoxes[0].IsChecked.Value)
+                        {
+                            row["StancesNot"] = 0;
+                        }
+                        else
+                        {
+                            uint mask = 0;
+                            uint flag = 1;
+
+                            for (int f = 1; f < stancesNotBoxes.Count; ++f)
+                            {
+                                if (stancesNotBoxes[f].IsChecked.Value) { mask += flag; }
+
+                                flag += flag;
+                            }
+
+                            row["StancesNot"] = mask;
+                        }
                     }
 
-                    if (isWotlkOrGreater)
+                    if (isWotlkOrGreater && row.Table.Columns.Contains("AttributesEx7"))
                     {
                         maskk = 0;
                         flagg = 1;
@@ -1724,6 +1885,20 @@ namespace SpellEditor
                         row["CasterAuraState"] = CasterAuraState.SelectedIndex;
                     }
                     row["TargetAuraState"] = TargetAuraState.SelectedIndex;
+                    row["CasterAuraStateNot"] = CasterAuraStateNot.SelectedIndex;
+                    row["TargetAuraStateNot"] = TargetAuraStateNot.SelectedIndex;
+                    if (isWotlkOrGreater && row.Table.Columns.Contains("CasterAuraSpell"))
+                    {
+                        row["CasterAuraSpell"] = spellRefValues[1];
+                        row["TargetAuraSpell"] = spellRefValues[2];
+                        row["ExcludeCasterAuraSpell"] = spellRefValues[3];
+                        row["ExcludeTargetAuraSpell"] = spellRefValues[4];
+                    }
+                    row["MinimumFactionId"] = uint.Parse(MinimumFactionId.Text);
+                    row["MinimumReputation"] = MinimumReputation.SelectedIndex;
+                    row["RequiredAuraVision"] = uint.Parse(RequiredAuraVision.Text);
+                    if (isWotlkOrGreater && row.Table.Columns.Contains("PowerDisplayId"))
+                        row["PowerDisplayId"] = uint.Parse(PowerDisplayId.Text);
 
                     row["RecoveryTime"] = uint.Parse(RecoveryTime.Text);
                     row["CategoryRecoveryTime"] = uint.Parse(CategoryRecoveryTime.Text);
@@ -1810,12 +1985,15 @@ namespace SpellEditor
                     row["BaseLevel"] = uint.Parse(BaseLevel.Text);
                     row["SpellLevel"] = uint.Parse(SpellLevel.Text);
                     // Handle 'Health' power type manually
-                    row["PowerType"] = PowerType.SelectedIndex == 13 ? (uint.MaxValue - 1) : (uint)PowerType.SelectedIndex;
+                    var healthPowerIndex = WoWVersionManager.GetInstance().SelectedVersion().Identity == 243 ? 5 : 13;
+                    row["PowerType"] = PowerType.SelectedIndex == healthPowerIndex ? (uint.MaxValue - 1) : (uint)PowerType.SelectedIndex;
                     row["ManaCost"] = uint.Parse(PowerCost.Text);
                     row["ManaCostPerLevel"] = uint.Parse(ManaCostPerLevel.Text);
                     row["ManaPerSecond"] = uint.Parse(ManaCostPerSecond.Text);
                     row["ManaPerSecondPerLevel"] = uint.Parse(PerSecondPerLevel.Text);
                     row["SpellPriority"] = int.Parse(SpellPriority.Text);
+                    row["StanceBarOrder"] = uint.Parse(StanceBarOrder.Text);
+                    row["ModalNextSpell"] = spellRefValues[0];
                     row["Speed"] = float.Parse(Speed.Text);
                     row["StackAmount"] = uint.Parse(Stacks.Text);
                     row["Totem1"] = uint.Parse(Totem1.Text);
@@ -1887,12 +2065,12 @@ namespace SpellEditor
                     row["EffectMechanic1"] = (uint)Mechanic1.SelectedIndex;
                     row["EffectMechanic2"] = (uint)Mechanic2.SelectedIndex;
                     row["EffectMechanic3"] = (uint)Mechanic3.SelectedIndex;
-                    row["EffectImplicitTargetA1"] = (uint)TargetA1.SelectedIndex;
-                    row["EffectImplicitTargetA2"] = (uint)TargetA2.SelectedIndex;
-                    row["EffectImplicitTargetA3"] = (uint)TargetA3.SelectedIndex;
-                    row["EffectImplicitTargetB1"] = (uint)TargetB1.SelectedIndex;
-                    row["EffectImplicitTargetB2"] = (uint)TargetB2.SelectedIndex;
-                    row["EffectImplicitTargetB3"] = (uint)TargetB3.SelectedIndex;
+                    row["EffectImplicitTargetA1"] = GetNumberPrefix(TargetA1);
+                    row["EffectImplicitTargetA2"] = GetNumberPrefix(TargetA2);
+                    row["EffectImplicitTargetA3"] = GetNumberPrefix(TargetA3);
+                    row["EffectImplicitTargetB1"] = GetNumberPrefix(TargetB1);
+                    row["EffectImplicitTargetB2"] = GetNumberPrefix(TargetB2);
+                    row["EffectImplicitTargetB3"] = GetNumberPrefix(TargetB3);
                     row["EffectApplyAuraName1"] = ApplyAuraName1.GetNumberPrefixFromText();
                     row["EffectApplyAuraName2"] = ApplyAuraName2.GetNumberPrefixFromText();
                     row["EffectApplyAuraName3"] = ApplyAuraName3.GetNumberPrefixFromText();
@@ -2051,8 +2229,15 @@ namespace SpellEditor
 
                     row.EndEdit();
                     adapter.CommitChanges(query, q.GetChanges());
+                    SpellDBC.InvalidateRecord(selectedID);
+                    // The spell may have changed family or flags, so drop the whole index,
+                    // families are cheap to rebuild one at a time
+                    spellFamilyClassMaskParser?.InvalidateAll();
 
-                    ShowFlyoutMessage($"Saved spell {selectedID}.");
+                    var savedCustomAttributes = SaveCustomAttributes(selectedID, out var customAttributeError);
+                    ShowFlyoutMessage(customAttributeError ?? (savedCustomAttributes
+                        ? $"Saved spell {selectedID} and its custom attributes."
+                        : $"Saved spell {selectedID}."));
 
                     SelectSpell.UpdateSpell(row);
                 }
@@ -2105,31 +2290,17 @@ namespace SpellEditor
             FlyoutText.Text = message;
         }
 
-        public static T DeepCopy<T>(T obj)
-        {
-            BinaryFormatter s = new BinaryFormatter();
-            using (MemoryStream ms = new MemoryStream())
-            {
-                s.Serialize(ms, obj);
-                ms.Position = 0;
-                T t = (T)s.Deserialize(ms);
-
-                return t;
-            }
-        }
-
         private void prepareIconEditor()
         {
             var loadIcons = (SpellIconDBC)DBCManager.GetInstance().FindDbcForBinding("SpellIcon");
-            loadIcons.LoadImages(64);
-            loadIcons.updateIconSize(64, new Thickness(16, 0, 0, 0));
+            loadIcons?.LoadImages();
         }
 
         #endregion
 
         #region PopulateSelectSpell
 
-        private void PopulateSelectSpell()
+        private Task PopulateSelectSpell()
         {
             if (!SelectSpell.IsInitialised())
             {
@@ -2141,8 +2312,9 @@ namespace SpellEditor
             {
                 SelectSpell.SetAdapter(GetDBAdapter());
             }
-            SelectSpell.PopulateSelectSpell();
+            var loadTask = SelectSpell.PopulateSelectSpell();
             FocusLanguage();
+            return loadTask;
         }
         #endregion
 
@@ -2168,24 +2340,74 @@ namespace SpellEditor
             adapter.Execute($"UPDATE `{"spell"}` SET `{column}` = '{newIconID}' WHERE `ID` = '{selectedID}'");
         }
 
+        private static readonly Regex SpellReferenceRegex = new Regex(@"\$(\d+)", RegexOptions.Compiled);
+
+        // Runs off the UI thread. Fetches the selected spell and pulls every spell its
+        // description or tooltip references in one extra query so loadSpell needs none.
+        // With refresh on selection turned off we reuse whatever is already cached instead.
+        private DataTable PrefetchSpell(uint spellId)
+        {
+            var refresh = Config.RefreshCacheOnSpellSelection;
+            if (!refresh)
+            {
+                var cachedTable = SpellDBC.GetCachedTable(spellId);
+                if (cachedTable != null)
+                    return cachedTable;
+            }
+
+            var data = adapter.Query($"SELECT * FROM `spell` WHERE `ID` = '{spellId}'");
+            SpellDBC.SeedRecordCache(data);
+            if (data.Rows.Count != 1)
+                return data;
+
+            var row = data.Rows[0];
+            var referenced = new HashSet<uint>();
+            foreach (DataColumn column in data.Columns)
+            {
+                if (!column.ColumnName.StartsWith("SpellDescription") && !column.ColumnName.StartsWith("SpellTooltip"))
+                    continue;
+                var text = row[column].ToString();
+                if (text.IndexOf('$') < 0)
+                    continue;
+                foreach (Match match in SpellReferenceRegex.Matches(text))
+                {
+                    if (uint.TryParse(match.Groups[1].Value, out var id) && id != spellId && (refresh || !SpellDBC.IsCached(id)))
+                        referenced.Add(id);
+                }
+            }
+            if (referenced.Count > 0)
+                SpellDBC.SeedRecordCache(adapter.Query($"SELECT * FROM `spell` WHERE `ID` IN ({string.Join(",", referenced)})"));
+            return data;
+        }
+
         private async void UpdateMainWindow()
         {
-            ProgressDialogController controller = null;
+            var spellId = selectedID;
             try
             {
                 updating = true;
 
-                loadSpell(LoadSpellReporter);
+                var data = await Task.Run(() => PrefetchSpell(spellId));
+                // A newer selection landed while we were waiting, let that one win
+                if (spellId != selectedID)
+                    return;
 
-                updating = false;
+                loadSpell(LoadSpellReporter, data);
+                // The boxes now hold a different spell, so the tick filter has to be worked out again
+                ApplyFlagFilters();
+
+                // The tabs only reload once they are looked at, the attributes are not awaited
+                EmulatorIntegrationInstance?.SetSpell(spellId);
+                _ = RefreshCustomAttributesAsync(spellId);
             }
-
             catch (Exception ex)
             {
-                updating = false;
-                if (controller != null)
-                    await controller.CloseAsync();
                 HandleErrorMessage(ex.Message);
+            }
+            finally
+            {
+                if (spellId == selectedID)
+                    updating = false;
             }
         }
 
@@ -2220,16 +2442,48 @@ namespace SpellEditor
 
         private void SpellDescriptionGen_TextChanged(object sender, TextChangedEventArgs e) => SpellGenRefresh(sender as ThreadSafeTextBox, 0);
         private void SpellTooltipGen_TextChanged(object sender, TextChangedEventArgs e) => SpellGenRefresh(sender as ThreadSafeTextBox, 1);
+        // Held between keystrokes so a burst of typing only costs one parse
+        private DispatcherTimer _spellGenTimer;
+        private ThreadSafeTextBox _spellGenSender;
+        private int _spellGenType;
+
         private void SpellGenRefresh(ThreadSafeTextBox sender, int type)
         {
+            _spellGenSender = sender;
+            _spellGenType = type;
+            if (_spellGenTimer == null)
+            {
+                _spellGenTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+                _spellGenTimer.Tick += (s, e) =>
+                {
+                    _spellGenTimer.Stop();
+                    SpellGenRefreshNow(_spellGenSender, _spellGenType);
+                };
+            }
+            _spellGenTimer.Stop();
+            _spellGenTimer.Start();
+        }
+
+        private void SpellGenRefreshNow(ThreadSafeTextBox sender, int type)
+        {
+            if (sender == null)
+                return;
             if (!int.TryParse(sender.Name[sender.Name.Length - 1].ToString(), out int locale))
                 return;
             var spell = GetSpellRowById(selectedID);
+            if (spell == null)
+                return;
             var text = SpellStringParser.ParseString(sender.Text, spell, this);
             if (type == 0)
+            {
                 spellDescGenFields[locale].ThreadSafeText = text;
+                spellDescGenFields[locale].ToolTip = "Raw formula text:\n" + sender.Text + "\n\nRendered preview:\n" + text;
+            }
             else if (type == 1)
+            {
                 spellTooltipGenFields[locale].ThreadSafeText = text;
+                spellTooltipGenFields[locale].ToolTip = "Raw formula text:\n" + sender.Text + "\n\nRendered preview:\n" + text;
+            }
         }
         #endregion
 
@@ -2338,24 +2592,16 @@ namespace SpellEditor
             return false;
         }
 
-        // id + spell name for control selectors
-        private string GetSpellDescString(uint spellId)
+        private string GetSpellNameOrPlaceholder(uint spellId)
         {
             string name = GetSpellNameById(spellId);
 
-            if (string.IsNullOrEmpty(name))
-            {
-                if (spellId == 0)
-                    name = "None";
-                else
-                    name = "(Unknown Spell)";
-            }
+            if (!string.IsNullOrEmpty(name))
+                return name;
 
-
-            string spellstring = $"{spellId} - {name}";
-
-            return spellstring;
+            return spellId == 0 ? "None" : "(Unknown Spell)";
         }
+
 
         #region DynamicMiscValues
         // refreshes the UI to load the right miscvalue ui control, but doesn't load its value
@@ -2366,7 +2612,7 @@ namespace SpellEditor
             effectAuraNameBoxes[effectIndex - 1].IsEnabled = false;
             effectChainTargetBoxes[effectIndex - 1].IsEnabled = false;
             effectItemTypeBoxes[effectIndex - 1].IsEnabled = false;
-            effectTriggerSpellBoxes[effectIndex - 1].IsEnabled = false;
+            SetTriggerSpellEnabled(effectIndex - 1, false);
             effectAmplitudeBoxes[effectIndex - 1].IsEnabled = false;
 
             ContentControl DynamicContentA = miscValueDynamicContentsA[effectIndex - 1];
@@ -2413,7 +2659,7 @@ namespace SpellEditor
                 effectAuraNameBoxes[effectIndex - 1].IsEnabled = true;
                 effectChainTargetBoxes[effectIndex - 1].IsEnabled = true;
                 effectItemTypeBoxes[effectIndex - 1].IsEnabled = true;
-                effectTriggerSpellBoxes[effectIndex - 1].IsEnabled = true;
+                SetTriggerSpellEnabled(effectIndex - 1, true);
                 effectAmplitudeBoxes[effectIndex - 1].IsEnabled = true;
 
                 DynamicContentA.IsEnabled = true;
@@ -2467,7 +2713,7 @@ namespace SpellEditor
                 effectAuraNameBoxes[effectIndex - 1].IsEnabled = true;
                 effectChainTargetBoxes[effectIndex - 1].IsEnabled = true;
                 effectItemTypeBoxes[effectIndex - 1].IsEnabled = true;
-                effectTriggerSpellBoxes[effectIndex - 1].IsEnabled = true;
+                SetTriggerSpellEnabled(effectIndex - 1, true);
                 effectAmplitudeBoxes[effectIndex - 1].IsEnabled = true;
             }
             else
@@ -2476,7 +2722,7 @@ namespace SpellEditor
                 effectAuraNameBoxes[effectIndex - 1].IsEnabled = spellEffectData.usesAura;
                 effectChainTargetBoxes[effectIndex - 1].IsEnabled = spellEffectData.UsesChainTarget;
                 effectItemTypeBoxes[effectIndex - 1].IsEnabled = spellEffectData.UsesItemType;
-                effectTriggerSpellBoxes[effectIndex - 1].IsEnabled = spellEffectData.UsesSpell;
+                SetTriggerSpellEnabled(effectIndex - 1, spellEffectData.UsesSpell);
                 effectAmplitudeBoxes[effectIndex - 1].IsEnabled = spellEffectData.UsesAmplitude;
             }
 
@@ -3067,12 +3313,11 @@ namespace SpellEditor
         }
 
         #endregion
-        private void loadSpell(UpdateTextFunc updateProgress)
+        // Runs on the UI thread and must stay query free, the row is prefetched by UpdateMainWindow
+        private void loadSpell(UpdateTextFunc updateProgress, DataTable data)
         {
             _currentVisualController = null;
             adapter.Updating = true;
-            updateProgress("Querying MySQL data...");
-            var data = adapter.Query($"SELECT * FROM `spell` WHERE `ID` = '{selectedID}'");
             var rowResult = data.Rows;
             if (rowResult == null || rowResult.Count != 1)
                 throw new Exception("An error occurred trying to select spell ID: " + selectedID);
@@ -3212,8 +3457,25 @@ namespace SpellEditor
                             flag += flag;
                         }
                     }
+
+                    mask = uint.Parse(row["StancesNot"].ToString());
+                    if (mask == 0)
+                    {
+                        stancesNotBoxes[0].ThreadSafeChecked = true;
+                        for (int f = 1; f < stancesNotBoxes.Count; ++f) { stancesNotBoxes[f].ThreadSafeChecked = false; }
+                    }
+                    else
+                    {
+                        stancesNotBoxes[0].ThreadSafeChecked = false;
+                        uint flag = 1;
+                        for (int f = 1; f < stancesNotBoxes.Count; ++f)
+                        {
+                            stancesNotBoxes[f].ThreadSafeChecked = ((mask & flag) != 0);
+                            flag += flag;
+                        }
+                    }
                 }
-                if (isWotlkOrGreater)
+                if (isWotlkOrGreater && row.Table.Columns.Contains("AttributesEx7"))
                 {
                     mask = uint.Parse(row["AttributesEx7"].ToString());
                     flagg = 1;
@@ -3226,8 +3488,13 @@ namespace SpellEditor
                 }
                 attributes5.ForEach(box => box.IsEnabled = isTbcOrGreater);
                 attributes6.ForEach(box => box.IsEnabled = isTbcOrGreater);
-                attributes7.ForEach(box => box.IsEnabled = isWotlkOrGreater);
+                attributes7.ForEach(box => box.IsEnabled = isWotlkOrGreater && row.Table.Columns.Contains("AttributesEx7"));
+                AttributesEx7Label.IsEnabled = isWotlkOrGreater && row.Table.Columns.Contains("AttributesEx7");
+                AttributesEx7Label.ToolTip = AttributesEx7Label.IsEnabled
+                    ? SafeTryFindResource("labAttributesEx7")
+                    : "Not present in the TBC 2.4.3 Spell.dbc layout (WotLK+ only).";
                 stancesBoxes.ForEach(box => box.IsEnabled = isTbcOrGreater);
+                stancesNotBoxes.ForEach(box => box.IsEnabled = isTbcOrGreater);
 
                 updateProgress("Updating targets...");
                 mask = uint.Parse(row["Targets"].ToString());
@@ -3266,8 +3533,8 @@ namespace SpellEditor
                 }
                 updateProgress("Updating spell focus object selection...");
                 var loadFocusObjects = (SpellFocusObject)DBCManager.GetInstance().FindDbcForBinding("SpellFocusObject");
-                RequiresSpellFocus.ThreadSafeIndex = loadFocusObjects.UpdateSpellFocusObjectSelection(uint.Parse(
-                    adapter.Query($"SELECT `RequiresSpellFocus` FROM `{"spell"}` WHERE `ID` = '{selectedID}'").Rows[0][0].ToString()));
+                RequiresSpellFocus.ThreadSafeIndex = loadFocusObjects.UpdateSpellFocusObjectSelection(
+                    uint.Parse(row["RequiresSpellFocus"].ToString()));
 
                 if (isTbcOrGreater)
                 {
@@ -3279,11 +3546,34 @@ namespace SpellEditor
                 updateProgress("Updating caster aura state...");
                 CasterAuraState.ThreadSafeIndex = uint.Parse(row["CasterAuraState"].ToString());
                 TargetAuraState.ThreadSafeIndex = uint.Parse(row["TargetAuraState"].ToString());
+                CasterAuraStateNot.ThreadSafeIndex = uint.Parse(row["CasterAuraStateNot"].ToString());
+                TargetAuraStateNot.ThreadSafeIndex = uint.Parse(row["TargetAuraStateNot"].ToString());
+                var hasAuraSpellRequirements = isWotlkOrGreater && row.Table.Columns.Contains("CasterAuraSpell");
+                SetSpellRef(1, hasAuraSpellRequirements ? uint.Parse(row["CasterAuraSpell"].ToString()) : 0);
+                SetSpellRef(2, hasAuraSpellRequirements ? uint.Parse(row["TargetAuraSpell"].ToString()) : 0);
+                SetSpellRef(3, hasAuraSpellRequirements ? uint.Parse(row["ExcludeCasterAuraSpell"].ToString()) : 0);
+                SetSpellRef(4, hasAuraSpellRequirements ? uint.Parse(row["ExcludeTargetAuraSpell"].ToString()) : 0);
+                for (var spellRefIndex = 1; spellRefIndex <= 4; ++spellRefIndex)
+                {
+                    spellRefBoxes[spellRefIndex].IsEnabled = hasAuraSpellRequirements;
+                    spellRefPickButtons[spellRefIndex].IsEnabled = hasAuraSpellRequirements;
+                    spellRefNames[spellRefIndex].IsEnabled = hasAuraSpellRequirements;
+                }
+                CasterAuraSpellLabel.IsEnabled = CasterAuraSpellPanel.IsEnabled = hasAuraSpellRequirements;
+                TargetAuraSpellLabel.IsEnabled = TargetAuraSpellPanel.IsEnabled = hasAuraSpellRequirements;
+                ExcludeCasterAuraSpellLabel.IsEnabled = ExcludeCasterAuraSpellPanel.IsEnabled = hasAuraSpellRequirements;
+                ExcludeTargetAuraSpellLabel.IsEnabled = ExcludeTargetAuraSpellPanel.IsEnabled = hasAuraSpellRequirements;
+                MinimumFactionId.ThreadSafeText = uint.Parse(row["MinimumFactionId"].ToString());
+                MinimumReputation.ThreadSafeIndex = uint.Parse(row["MinimumReputation"].ToString());
+                RequiredAuraVision.ThreadSafeText = uint.Parse(row["RequiredAuraVision"].ToString());
+                var hasPowerDisplayId = isWotlkOrGreater && row.Table.Columns.Contains("PowerDisplayId");
+                PowerDisplayId.ThreadSafeText = hasPowerDisplayId ? uint.Parse(row["PowerDisplayId"].ToString()) : 0;
+                PowerDisplayId.IsEnabled = hasPowerDisplayId;
 
                 updateProgress("Updating cast time selection...");
                 var loadCastTimes = (SpellCastTimes)DBCManager.GetInstance().FindDbcForBinding("SpellCastTimes");
-                CastTime.ThreadSafeIndex = loadCastTimes.UpdateCastTimeSelection(uint.Parse(adapter.Query(
-                    $"SELECT `CastingTimeIndex` FROM `{"spell"}` WHERE `ID` = '{selectedID}'").Rows[0][0].ToString()));
+                CastTime.ThreadSafeIndex = loadCastTimes.UpdateCastTimeSelection(
+                    uint.Parse(row["CastingTimeIndex"].ToString()));
                 updateProgress("Updating other stuff...");
                 RecoveryTime.ThreadSafeText = uint.Parse(row["RecoveryTime"].ToString());
                 CategoryRecoveryTime.ThreadSafeText = uint.Parse(row["CategoryRecoveryTime"].ToString());
@@ -3364,13 +3654,13 @@ namespace SpellEditor
                 SpellLevel.ThreadSafeText = uint.Parse(row["SpellLevel"].ToString());
 
                 var loadDurations = (SpellDuration)DBCManager.GetInstance().FindDbcForBinding("SpellDuration");
-                Duration.ThreadSafeIndex = loadDurations.UpdateDurationIndexes(uint.Parse(adapter.Query(
-                    $"SELECT `DurationIndex` FROM `{"spell"}` WHERE `ID` = '{selectedID}'").Rows[0][0].ToString()));
+                Duration.ThreadSafeIndex = loadDurations.UpdateDurationIndexes(
+                    uint.Parse(row["DurationIndex"].ToString()));
 
                 uint powerType = uint.Parse(row["PowerType"].ToString());
                 // Manually handle 'Health' power type
                 if (powerType == (uint.MaxValue - 1))
-                    powerType = 13;
+                    powerType = WoWVersionManager.GetInstance().SelectedVersion().Identity == 243 ? 5u : 13u;
                 PowerType.ThreadSafeIndex = powerType;
                 PowerCost.ThreadSafeText = uint.Parse(row["ManaCost"].ToString());
                 ManaCostPerLevel.ThreadSafeText = uint.Parse(row["ManaCostPerLevel"].ToString());
@@ -3385,10 +3675,12 @@ namespace SpellEditor
                 {
                     SpellPriority.IsEnabled = false;
                 }
+                StanceBarOrder.ThreadSafeText = uint.Parse(row["StanceBarOrder"].ToString());
+                SetSpellRef(0, uint.Parse(row["ModalNextSpell"].ToString()));
                 updateProgress("Updating spell range selection...");
                 var loadRanges = (SpellRange)DBCManager.GetInstance().FindDbcForBinding("SpellRange");
-                Range.ThreadSafeIndex = loadRanges.UpdateSpellRangeSelection(uint.Parse(adapter.Query(
-                    $"SELECT `RangeIndex` FROM `{"spell"}` WHERE `ID` = '{selectedID}'").Rows[0][0].ToString()));
+                Range.ThreadSafeIndex = loadRanges.UpdateSpellRangeSelection(
+                    uint.Parse(row["RangeIndex"].ToString()));
 
                 updateProgress("Updating speed, stacks, totems, reagents...");
                 Speed.ThreadSafeText = row["Speed"].ToString();
@@ -3413,8 +3705,7 @@ namespace SpellEditor
                 ReagentCount8.ThreadSafeText = row["ReagentCount8"].ToString();
 
                 updateProgress("Updating item class selection...");
-                int ID = int.Parse(adapter.Query(
-                    $"SELECT `EquippedItemClass` FROM `{"spell"}` WHERE `ID` = '{selectedID}'").Rows[0][0].ToString());
+                int ID = int.Parse(row["EquippedItemClass"].ToString());
                 if (ID == -1)
                 {
                     EquippedItemClass.ThreadSafeIndex = 0;
@@ -3476,9 +3767,9 @@ namespace SpellEditor
                     }
                 }
                 updateProgress("Updating effects 1-3...");
-                SpellEffect1.SetTextFromIndex(uint.Parse(row["Effect1"].ToString()));
-                SpellEffect2.SetTextFromIndex(uint.Parse(row["Effect2"].ToString()));
-                SpellEffect3.SetTextFromIndex(uint.Parse(row["Effect3"].ToString()));
+                SetVersionedEnumValue(SpellEffect1, versionedSpellEffectEntries, uint.Parse(row["Effect1"].ToString()), "spell effect");
+                SetVersionedEnumValue(SpellEffect2, versionedSpellEffectEntries, uint.Parse(row["Effect2"].ToString()), "spell effect");
+                SetVersionedEnumValue(SpellEffect3, versionedSpellEffectEntries, uint.Parse(row["Effect3"].ToString()), "spell effect");
                 GenerateSpellEffectHeader(1);
                 GenerateSpellEffectHeader(2);
                 GenerateSpellEffectHeader(3);
@@ -3495,25 +3786,26 @@ namespace SpellEditor
                 Mechanic1.ThreadSafeIndex = int.Parse(row["EffectMechanic1"].ToString());
                 Mechanic2.ThreadSafeIndex = int.Parse(row["EffectMechanic2"].ToString());
                 Mechanic3.ThreadSafeIndex = int.Parse(row["EffectMechanic3"].ToString());
-                TargetA1.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetA1"].ToString());
-                TargetA2.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetA2"].ToString());
-                TargetA3.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetA3"].ToString());
-                TargetB1.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetB1"].ToString());
-                TargetB2.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetB2"].ToString());
-                TargetB3.ThreadSafeIndex = uint.Parse(row["EffectImplicitTargetB3"].ToString());
+                SetVersionedEnumValue(TargetA1, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetA1"].ToString()), "implicit target");
+                SetVersionedEnumValue(TargetA2, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetA2"].ToString()), "implicit target");
+                SetVersionedEnumValue(TargetA3, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetA3"].ToString()), "implicit target");
+                SetVersionedEnumValue(TargetB1, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetB1"].ToString()), "implicit target");
+                SetVersionedEnumValue(TargetB2, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetB2"].ToString()), "implicit target");
+                SetVersionedEnumValue(TargetB3, versionedTargetEntries, uint.Parse(row["EffectImplicitTargetB3"].ToString()), "implicit target");
 
                 updateProgress("Updating radius index...");
                 var loadRadiuses = (SpellRadius)DBCManager.GetInstance().FindDbcForBinding("SpellRadius");
-                var result = adapter.Query($"SELECT `EffectRadiusIndex1`, `EffectRadiusIndex2`, `EffectRadiusIndex3` FROM `{"spell"}` WHERE `ID` = '{selectedID}'").Rows[0];
-                uint[] IDs = { uint.Parse(result[0].ToString()), uint.Parse(result[1].ToString()), uint.Parse(result[2].ToString()) };
+                uint[] IDs = { uint.Parse(row["EffectRadiusIndex1"].ToString()),
+                    uint.Parse(row["EffectRadiusIndex2"].ToString()),
+                    uint.Parse(row["EffectRadiusIndex3"].ToString()) };
                 RadiusIndex1.ThreadSafeIndex = loadRadiuses.UpdateRadiusIndexes(IDs[0]);
                 RadiusIndex2.ThreadSafeIndex = loadRadiuses.UpdateRadiusIndexes(IDs[1]);
                 RadiusIndex3.ThreadSafeIndex = loadRadiuses.UpdateRadiusIndexes(IDs[2]);
 
                 updateProgress("Updating effect 1-3 data...");
-                ApplyAuraName1.SetTextFromIndex(uint.Parse(row["EffectApplyAuraName1"].ToString()));
-                ApplyAuraName2.SetTextFromIndex(uint.Parse(row["EffectApplyAuraName2"].ToString()));
-                ApplyAuraName3.SetTextFromIndex(uint.Parse(row["EffectApplyAuraName3"].ToString()));
+                SetVersionedEnumValue(ApplyAuraName1, versionedAuraEntries, uint.Parse(row["EffectApplyAuraName1"].ToString()), "aura type");
+                SetVersionedEnumValue(ApplyAuraName2, versionedAuraEntries, uint.Parse(row["EffectApplyAuraName2"].ToString()), "aura type");
+                SetVersionedEnumValue(ApplyAuraName3, versionedAuraEntries, uint.Parse(row["EffectApplyAuraName3"].ToString()), "aura type");
                 Amplitude1.ThreadSafeText = row["EffectAmplitude1"].ToString();
                 Amplitude2.ThreadSafeText = row["EffectAmplitude2"].ToString();
                 Amplitude3.ThreadSafeText = row["EffectAmplitude3"].ToString();
@@ -3529,12 +3821,9 @@ namespace SpellEditor
                 // TriggerSpell1.ThreadSafeText = row["EffectTriggerSpell1"].ToString();
                 // TriggerSpell2.ThreadSafeText = row["EffectTriggerSpell2"].ToString();
                 // TriggerSpell3.ThreadSafeText = row["EffectTriggerSpell3"].ToString();
-                effectTriggerSpells[0] = uint.Parse(row["EffectTriggerSpell1"].ToString());
-                effectTriggerSpells[1] = uint.Parse(row["EffectTriggerSpell2"].ToString());
-                effectTriggerSpells[2] = uint.Parse(row["EffectTriggerSpell3"].ToString());
-                TriggerSpell1.Content = GetSpellDescString(effectTriggerSpells[0]);
-                TriggerSpell2.Content = GetSpellDescString(effectTriggerSpells[1]);
-                TriggerSpell3.Content = GetSpellDescString(effectTriggerSpells[2]);
+                SetTriggerSpell(0, uint.Parse(row["EffectTriggerSpell1"].ToString()));
+                SetTriggerSpell(1, uint.Parse(row["EffectTriggerSpell2"].ToString()));
+                SetTriggerSpell(2, uint.Parse(row["EffectTriggerSpell3"].ToString()));
 
                 PointsPerComboPoint1.ThreadSafeText = row["EffectPointsPerComboPoint1"].ToString();
                 PointsPerComboPoint2.ThreadSafeText = row["EffectPointsPerComboPoint2"].ToString();
@@ -3560,6 +3849,8 @@ namespace SpellEditor
                 }
 
                 uint familyName = uint.Parse(row["SpellFamilyName"].ToString());
+                if (Config.RefreshCacheOnSpellSelection)
+                    spellFamilyClassMaskParser?.InvalidateFamily(familyName);
                 AddFamilyIfNotExists(familyName);
                 SpellFamilyName.SetTextFromIndex(familyName);
                 if (!isWotlkOrGreater)
@@ -3612,8 +3903,7 @@ namespace SpellEditor
                 {
                     updateProgress("Updating totem categories & load area groups...");
                     var loadTotemCategories = (TotemCategory)DBCManager.GetInstance().FindDbcForBinding("TotemCategory");
-                    result = adapter.Query($"SELECT `TotemCategory1`, `TotemCategory2` FROM `{"spell"}` WHERE `ID` = '{selectedID}'").Rows[0];
-                    IDs = new[] { uint.Parse(result[0].ToString()), uint.Parse(result[1].ToString()) };
+                    IDs = new[] { uint.Parse(row["TotemCategory1"].ToString()), uint.Parse(row["TotemCategory2"].ToString()) };
                     TotemCategory1.ThreadSafeIndex = loadTotemCategories.UpdateTotemCategoriesSelection(IDs[0]);
                     TotemCategory2.ThreadSafeIndex = loadTotemCategories.UpdateTotemCategoriesSelection(IDs[1]);
                 }
@@ -3622,8 +3912,8 @@ namespace SpellEditor
                 if (isWotlkOrGreater)
                 {
                     var loadAreaGroups = (AreaGroup)DBCManager.GetInstance().FindDbcForBinding("AreaGroup");
-                    AreaGroup.ThreadSafeIndex = loadAreaGroups.UpdateAreaGroupSelection(uint.Parse(adapter.Query(
-                        $"SELECT `AreaGroupID` FROM `{"spell"}` WHERE `ID` = '{selectedID}'").Rows[0][0].ToString()));
+                    AreaGroup.ThreadSafeIndex = loadAreaGroups.UpdateAreaGroupSelection(
+                        uint.Parse(row["AreaGroupID"].ToString()));
                 }
                 AreaGroup.IsEnabled = isWotlkOrGreater;
 
@@ -3655,8 +3945,8 @@ namespace SpellEditor
                 {
                     updateProgress("Updating rune costs...");
                     var loadRuneCosts = (SpellRuneCost)DBCManager.GetInstance().FindDbcForBinding("SpellRuneCost");
-                    RuneCost.ThreadSafeIndex = loadRuneCosts.UpdateSpellRuneCostSelection(uint.Parse(adapter.Query(
-                        $"SELECT `RuneCostID` FROM `{"spell"}` WHERE `ID` = '{selectedID}'").Rows[0][0].ToString()));
+                    RuneCost.ThreadSafeIndex = loadRuneCosts.UpdateSpellRuneCostSelection(
+                        uint.Parse(row["RuneCostID"].ToString()));
                 }
                 RuneCost.IsEnabled = isWotlkOrGreater;
 
@@ -3670,6 +3960,9 @@ namespace SpellEditor
                 EffectBonusMultiplier1.IsEnabled = isWotlkOrGreater;
                 EffectBonusMultiplier2.IsEnabled = isWotlkOrGreater;
                 EffectBonusMultiplier3.IsEnabled = isWotlkOrGreater;
+                EffectBonusMultiplierLabel1.IsEnabled = isWotlkOrGreater;
+                EffectBonusMultiplierLabel2.IsEnabled = isWotlkOrGreater;
+                EffectBonusMultiplierLabel3.IsEnabled = isWotlkOrGreater;
                 if (isWotlkOrGreater)
                 {
                     SpellMissileID.ThreadSafeText = row["SpellMissileID"].ToString();
@@ -3678,10 +3971,10 @@ namespace SpellEditor
                     var loadDifficulties = (SpellDifficulty)DBCManager.GetInstance().FindDbcForBinding("SpellDifficulty");
                     var loadDescriptionVariables = (SpellDescriptionVariables)DBCManager.GetInstance().FindDbcForBinding("SpellDescriptionVariables");
                     SpellDescriptionVariables.ThreadSafeIndex = loadDescriptionVariables.UpdateSpellDescriptionVariablesSelection(
-                        uint.Parse(adapter.Query($"SELECT `SpellDescriptionVariableID` FROM `{"spell"}` WHERE `ID` = '{selectedID}'").Rows[0][0].ToString()));
+                        uint.Parse(row["SpellDescriptionVariableID"].ToString()));
 
-                    Difficulty.ThreadSafeIndex = loadDifficulties.UpdateDifficultySelection(uint.Parse(adapter.Query(
-                        $"SELECT `SpellDifficultyID` FROM `{"spell"}` WHERE `ID` = '{selectedID}'").Rows[0][0].ToString()));
+                    Difficulty.ThreadSafeIndex = loadDifficulties.UpdateDifficultySelection(
+                        uint.Parse(row["SpellDifficultyID"].ToString()));
                 }
                 SpellMissileID.IsEnabled = isWotlkOrGreater;
                 SpellDescriptionVariables.IsEnabled = isWotlkOrGreater;
@@ -3706,7 +3999,9 @@ namespace SpellEditor
         #region VisualTab
         private void UpdateSpellVisualTab(uint selectedId, uint selectedKit = 0, bool forceRefresh = false)
         {
+            EnsureVisualIdChoices();
             SelectedVisualPath.Content = selectedId.ToString();
+            VisualSelectIdTxt.Text = selectedId.ToString(CultureInfo.InvariantCulture);
             if (!forceRefresh && 
                 _currentVisualController?.VisualId == selectedId && 
                 _currentVisualController?.NextLoadAttachmentId == 0)
@@ -3720,15 +4015,24 @@ namespace SpellEditor
                 controller.NextLoadAttachmentId = attachId.Value;
             }
             _currentVisualController = controller;
-            // FIXME(Harry): Some of these can probably be loaded in earlier versions
-            if (WoWVersionManager.IsWotlkOrGreaterSelected)
+            if (WoWVersionManager.IsTbcOrGreaterSelected)
             {
                 UpdateSpellVisualKitList(controller?.VisualKits, selectedKit);
                 UpdatePasteability(controller != null);
                 UpdateSpellVisualProperties(controller != null ? controller.VisualId : 0);
-                UpdateSpellVisualMotionEditor(controller != null ? controller.VisualId : 0);
                 UpdateSpellMissileMotionEditor(controller);
-                UpdateSpellMotionEditor(controller != null ? controller.MissileMotion : 0);
+                if (WoWVersionManager.IsWotlkOrGreaterSelected)
+                {
+                    UpdateSpellVisualMotionEditor(controller != null ? controller.VisualId : 0);
+                    UpdateSpellMotionEditor(controller != null ? controller.MissileMotion : 0);
+                }
+                else
+                {
+                    // SpellMissile, SpellMissileMotion, model attachments and the six offset
+                    // columns are not part of the TBC 2.4.3 DBC graph.
+                    UpdateSpellVisualMotionEditor(0);
+                    UpdateSpellMotionEditor(0);
+                }
             }
             else
             {
@@ -3868,7 +4172,7 @@ namespace SpellEditor
                 // Add new spellvisualkit
                 var copyRow = kitResults.Rows[0];
                 copyRow[0] = newKitId.ToString();
-                adapter.Execute($"INSERT INTO spellvisualkit VALUES ({ string.Join(", ", copyRow.ItemArray) })");
+                InsertVisualRow("spellvisualkit", copyRow);
 
                 // Update existing spell visual to point to new kit
                 if (visualId > 0)
@@ -3896,7 +4200,7 @@ namespace SpellEditor
                         copyParent[_key] = 0;
                     }
                     copyParent[key] = newKitId;
-                    adapter.Execute($"INSERT INTO spellvisual VALUES ({ string.Join(", ", copyParent.ItemArray) })");
+                    InsertVisualRow("spellvisual", copyParent);
                     SpellVisual1.ThreadSafeText = newVisualId.ToString();
                     visualId = newVisualId;
                     Button_Click(SaveSpellChanges, null);
@@ -3981,8 +4285,7 @@ namespace SpellEditor
                 var newEffectId = uint.Parse(adapter.Query("SELECT max(id) FROM spellvisualeffectname").Rows[0][0].ToString()) + 1;
                 var copyRow = effectResults.Rows[0];
                 copyRow[0] = newEffectId.ToString();
-                var escapedItems = copyRow.ItemArray.Select(item => "'" + adapter.EscapeString(item.ToString()) + "'");
-                adapter.Execute($"INSERT INTO spellvisualeffectname VALUES ({ string.Join(", ", escapedItems) })");
+                InsertVisualRow("spellvisualeffectname", copyRow);
                 // Update kit to point to new effect if no attachment
                 if (!effectEntry.IsAttachment)
                 {
@@ -3996,8 +4299,7 @@ namespace SpellEditor
                 {
                     copyAttachRow["ParentSpellVisualKitId"] = parentKitId;
                     copyAttachRow["SpellVisualEffectNameId"] = newEffectId;
-                    escapedItems = copyAttachRow.ItemArray.Select(item => "\"" + item + "\"");
-                    adapter.Execute($"INSERT INTO spellvisualkitmodelattach VALUES ({ string.Join(", ", escapedItems) })");
+                    InsertVisualRow("spellvisualkitmodelattach", copyAttachRow);
                 }
                 _currentVisualController = null;
                 UpdateSpellVisualTab(visualId, effectEntry.ParentKitId);
@@ -4409,13 +4711,14 @@ namespace SpellEditor
             var spellSelected = selectedID > 0;
             if (visualId > 0)
             {
-                using (var results = adapter.Query("SELECT HasMissile, MissileModel, MissilePathType, " +
+                var columns = "HasMissile, MissileModel, MissilePathType, " +
                     "MissileDestinationAttachment, MissileSound, AnimEventSoundId, " +
                     "MissileAttachment, MissileFollowGroundHeight, MissileFollowDropSpeed, " +
-                    "MissileFollowApproach, MissileFollowGroundFlags, MissileMotion, " +
-                    "MissileCastOffsetX, MissileCastOffsetY, MissileCastOffsetZ, " +
-                    "MissileImpactOffsetX, MissileImpactOffsetY, MissileImpactOffsetZ " +
-                    "FROM spellvisual WHERE ID = " + visualId))
+                    "MissileFollowApproach, MissileFollowGroundFlags, MissileMotion";
+                if (WoWVersionManager.IsWotlkOrGreaterSelected)
+                    columns += ", MissileCastOffsetX, MissileCastOffsetY, MissileCastOffsetZ, " +
+                        "MissileImpactOffsetX, MissileImpactOffsetY, MissileImpactOffsetZ";
+                using (var results = adapter.Query("SELECT " + columns + " FROM spellvisual WHERE ID = " + visualId))
                 {
                     if (results.Rows.Count > 0)
                     {
@@ -4435,12 +4738,13 @@ namespace SpellEditor
             VisualMissileFollowApproachTxt.Text = entry != null ? entry["MissileFollowApproach"].ToString() : string.Empty;
             VisualMissileFollowGroundFlagsTxt.Text = entry != null ? entry["MissileFollowGroundFlags"].ToString() : string.Empty;
             VisualMissileMotionTxt.Text = entry != null ? entry["MissileMotion"].ToString() : string.Empty;
-            VisualMissileCastOffsetXTxt.Text = entry != null ? entry["MissileCastOffsetX"].ToString() : string.Empty;
-            VisualMissileCastOffsetYTxt.Text = entry != null ? entry["MissileCastOffsetY"].ToString() : string.Empty;
-            VisualMissileCastOffsetZTxt.Text = entry != null ? entry["MissileCastOffsetZ"].ToString() : string.Empty;
-            VisualMissileImpactOffsetXTxt.Text = entry != null ? entry["MissileImpactOffsetX"].ToString() : string.Empty;
-            VisualMissileImpactOffsetYTxt.Text = entry != null ? entry["MissileImpactOffsetY"].ToString() : string.Empty;
-            VisualMissileImpactOffsetZTxt.Text = entry != null ? entry["MissileImpactOffsetZ"].ToString() : string.Empty;
+            var hasOffsets = entry != null && WoWVersionManager.IsWotlkOrGreaterSelected;
+            VisualMissileCastOffsetXTxt.Text = hasOffsets ? entry["MissileCastOffsetX"].ToString() : string.Empty;
+            VisualMissileCastOffsetYTxt.Text = hasOffsets ? entry["MissileCastOffsetY"].ToString() : string.Empty;
+            VisualMissileCastOffsetZTxt.Text = hasOffsets ? entry["MissileCastOffsetZ"].ToString() : string.Empty;
+            VisualMissileImpactOffsetXTxt.Text = hasOffsets ? entry["MissileImpactOffsetX"].ToString() : string.Empty;
+            VisualMissileImpactOffsetYTxt.Text = hasOffsets ? entry["MissileImpactOffsetY"].ToString() : string.Empty;
+            VisualMissileImpactOffsetZTxt.Text = hasOffsets ? entry["MissileImpactOffsetZ"].ToString() : string.Empty;
             VisualHasMissileTxt.IsEnabled = entry != null && spellSelected;
             VisualMissileModelTxt.IsEnabled = entry != null && spellSelected;
             VisualMissilePathTypeTxt.IsEnabled = entry != null && spellSelected;
@@ -4453,12 +4757,12 @@ namespace SpellEditor
             VisualMissileFollowApproachTxt.IsEnabled = entry != null && spellSelected;
             VisualMissileFollowGroundFlagsTxt.IsEnabled = entry != null && spellSelected;
             VisualMissileMotionTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileCastOffsetXTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileCastOffsetYTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileCastOffsetZTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileImpactOffsetXTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileImpactOffsetYTxt.IsEnabled = entry != null && spellSelected;
-            VisualMissileImpactOffsetZTxt.IsEnabled = entry != null && spellSelected;
+            VisualMissileCastOffsetXTxt.IsEnabled = hasOffsets && spellSelected;
+            VisualMissileCastOffsetYTxt.IsEnabled = hasOffsets && spellSelected;
+            VisualMissileCastOffsetZTxt.IsEnabled = hasOffsets && spellSelected;
+            VisualMissileImpactOffsetXTxt.IsEnabled = hasOffsets && spellSelected;
+            VisualMissileImpactOffsetYTxt.IsEnabled = hasOffsets && spellSelected;
+            VisualMissileImpactOffsetZTxt.IsEnabled = hasOffsets && spellSelected;
             VisualNew.IsEnabled = entry == null && spellSelected;
             VisualSave.IsEnabled = entry != null && spellSelected;
         }
@@ -4530,15 +4834,16 @@ namespace SpellEditor
             VisualMissileEffectFilePathTxt.Text = missileEntry != null ? missileEntry[2].ToString() : string.Empty;
             VisualMissileEffectAreaEffectSizeTxt.Text = missileEntry != null ? missileEntry[3].ToString() : string.Empty;
             VisualMissileEffectScaleTxt.Text = missileEntry != null ? missileEntry[4].ToString() : string.Empty;
-            VisualMissileEffectMinAllowedScaleTxt.Text = missileEntry != null ? missileEntry[5].ToString() : string.Empty;
-            VisualMissileEffectMaxAllowedScaleTxt.Text = missileEntry != null ? missileEntry[6].ToString() : string.Empty;
+            var hasScaleLimits = missileEntry != null && WoWVersionManager.IsWotlkOrGreaterSelected;
+            VisualMissileEffectMinAllowedScaleTxt.Text = hasScaleLimits ? missileEntry["MinAllowedScale"].ToString() : string.Empty;
+            VisualMissileEffectMaxAllowedScaleTxt.Text = hasScaleLimits ? missileEntry["MaxAllowedScale"].ToString() : string.Empty;
             VisualMissileEffectIdTxt.IsEnabled = missileEntry != null && spellSelected;
             VisualMissileEffectNameTxt.IsEnabled = missileEntry != null && spellSelected;
             VisualMissileEffectFilePathTxt.IsEnabled = missileEntry != null && spellSelected;
             VisualMissileEffectAreaEffectSizeTxt.IsEnabled = missileEntry != null && spellSelected;
             VisualMissileEffectScaleTxt.IsEnabled = missileEntry != null && spellSelected;
-            VisualMissileEffectMinAllowedScaleTxt.IsEnabled = missileEntry != null && spellSelected;
-            VisualMissileEffectMaxAllowedScaleTxt.IsEnabled = missileEntry != null && spellSelected;
+            VisualMissileEffectMinAllowedScaleTxt.IsEnabled = hasScaleLimits && spellSelected;
+            VisualMissileEffectMaxAllowedScaleTxt.IsEnabled = hasScaleLimits && spellSelected;
             if (controller == null)
             {
                 return;
@@ -4749,12 +5054,15 @@ namespace SpellEditor
                     row["MissileFollowApproach"] = VisualMissileFollowApproachTxt.Text;
                     row["MissileFollowGroundFlags"] = VisualMissileFollowGroundFlagsTxt.Text;
                     row["MissileMotion"] = VisualMissileMotionTxt.Text;
-                    row["MissileCastOffsetX"] = VisualMissileCastOffsetXTxt.Text;
-                    row["MissileCastOffsetY"] = VisualMissileCastOffsetYTxt.Text;
-                    row["MissileCastOffsetZ"] = VisualMissileCastOffsetZTxt.Text;
-                    row["MissileImpactOffsetX"] = VisualMissileImpactOffsetXTxt.Text;
-                    row["MissileImpactOffsetY"] = VisualMissileImpactOffsetYTxt.Text;
-                    row["MissileImpactOffsetZ"] = VisualMissileImpactOffsetZTxt.Text;
+                    if (WoWVersionManager.IsWotlkOrGreaterSelected)
+                    {
+                        row["MissileCastOffsetX"] = VisualMissileCastOffsetXTxt.Text;
+                        row["MissileCastOffsetY"] = VisualMissileCastOffsetYTxt.Text;
+                        row["MissileCastOffsetZ"] = VisualMissileCastOffsetZTxt.Text;
+                        row["MissileImpactOffsetX"] = VisualMissileImpactOffsetXTxt.Text;
+                        row["MissileImpactOffsetY"] = VisualMissileImpactOffsetYTxt.Text;
+                        row["MissileImpactOffsetZ"] = VisualMissileImpactOffsetZTxt.Text;
+                    }
                     row.EndEdit();
                     adapter.CommitChanges(query, results);
                     ShowFlyoutMessage($"Saved changes to SpellVisual {_currentVisualController.VisualId}.");
@@ -4767,13 +5075,141 @@ namespace SpellEditor
             if (sender != VisualNew)
                 return;
             var newId = uint.Parse(adapter.QuerySingleValue("SELECT MAX(ID) FROM spellvisual").ToString()) + 1;
-            // FIXME(Harry): Hardcoded for 3.3.5
-            GetDBAdapter().Execute($"INSERT INTO spellvisual VALUES ({newId}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4294967295, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)");
+            var binding = BindingManager.GetInstance().FindBinding("SpellVisual");
+            if (binding == null)
+                return;
+            var columns = binding.Fields.Select(field => $"`{field.Name}`");
+            var values = binding.Fields.Select(field => field.Name == "ID" ? newId.ToString(CultureInfo.InvariantCulture) :
+                field.Name == "MissileAttachment" ? uint.MaxValue.ToString(CultureInfo.InvariantCulture) : "0");
+            GetDBAdapter().Execute($"INSERT INTO spellvisual ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)})");
             // Link up to selected spell
             SpellVisual1.Text = newId.ToString();
             GetDBAdapter().Execute($"UPDATE spell SET SpellVisual1 = {newId} WHERE ID = {selectedID}");
             UpdateSpellVisualTab(newId, 0);
             ShowFlyoutMessage($"Created new SpellVisual record {newId}.");
+        }
+
+        private void VisualLoad_Click(object sender, RoutedEventArgs e)
+        {
+            var visualId = GetNumberPrefix(VisualSelectIdTxt);
+            if (visualId == 0)
+            {
+                ShowFlyoutMessage("Enter a valid SpellVisual ID.");
+                return;
+            }
+            using (var result = adapter.Query($"SELECT ID FROM spellvisual WHERE ID = {visualId}"))
+            {
+                if (result == null || result.Rows.Count == 0)
+                {
+                    ShowFlyoutMessage($"SpellVisual {visualId} does not exist in the imported TBC DBC data.");
+                    return;
+                }
+            }
+            UpdateSpellVisualTab(visualId, 0, true);
+        }
+
+        private void VisualUse_Click(object sender, RoutedEventArgs e)
+        {
+            var visualId = GetNumberPrefix(VisualSelectIdTxt);
+            if (selectedID == 0 || visualId == 0)
+                return;
+            using (var result = adapter.Query($"SELECT ID FROM spellvisual WHERE ID = {visualId}"))
+            {
+                if (result == null || result.Rows.Count == 0)
+                {
+                    ShowFlyoutMessage($"SpellVisual {visualId} does not exist.");
+                    return;
+                }
+            }
+            SpellVisual1.ThreadSafeText = visualId.ToString(CultureInfo.InvariantCulture);
+            UpdateSpellVisualTab(visualId, 0, true);
+            ShowFlyoutMessage($"SpellVisual {visualId} selected. Use Save Spell Changes to store it on spell {selectedID}.");
+        }
+
+        private void VisualClone_Click(object sender, RoutedEventArgs e)
+        {
+            var sourceVisualId = GetNumberPrefix(VisualSelectIdTxt);
+            if (sourceVisualId == 0)
+                return;
+            var newVisualId = CloneVisualGraph(sourceVisualId);
+            if (newVisualId == 0)
+                return;
+            SpellVisual1.ThreadSafeText = newVisualId.ToString(CultureInfo.InvariantCulture);
+            UpdateSpellVisualTab(newVisualId, 0, true);
+            ShowFlyoutMessage($"Cloned SpellVisual {sourceVisualId} to independent visual {newVisualId}. Use Save Spell Changes to link it to spell {selectedID}.");
+        }
+
+        private uint CloneVisualGraph(uint sourceVisualId)
+        {
+            using (var visualResults = adapter.Query($"SELECT * FROM spellvisual WHERE ID = {sourceVisualId}"))
+            {
+                if (visualResults == null || visualResults.Rows.Count == 0)
+                {
+                    ShowFlyoutMessage($"SpellVisual {sourceVisualId} does not exist.");
+                    return 0;
+                }
+
+                var visualRow = visualResults.Rows[0];
+                var newVisualId = NextVisualTableId("spellvisual");
+                visualRow["ID"] = newVisualId;
+                var effectCopies = new Dictionary<uint, uint>();
+                foreach (var kitField in WoWVersionManager.GetInstance().LookupKeyResource().KitColumnKeys)
+                {
+                    if (!uint.TryParse(visualRow[kitField].ToString(), out var sourceKitId) || sourceKitId == 0)
+                        continue;
+                    using (var kitResults = adapter.Query($"SELECT * FROM spellvisualkit WHERE ID = {sourceKitId}"))
+                    {
+                        if (kitResults == null || kitResults.Rows.Count == 0)
+                            continue;
+                        var kitRow = kitResults.Rows[0];
+                        var newKitId = NextVisualTableId("spellvisualkit");
+                        kitRow["ID"] = newKitId;
+                        foreach (var effectField in WoWVersionManager.GetInstance().LookupKeyResource().EffectColumnKeys)
+                        {
+                            if (!uint.TryParse(kitRow[effectField].ToString(), out var sourceEffectId) || sourceEffectId == 0)
+                                continue;
+                            if (!effectCopies.TryGetValue(sourceEffectId, out var newEffectId))
+                            {
+                                using (var effectResults = adapter.Query($"SELECT * FROM spellvisualeffectname WHERE ID = {sourceEffectId}"))
+                                {
+                                    if (effectResults == null || effectResults.Rows.Count == 0)
+                                        continue;
+                                    var effectRow = effectResults.Rows[0];
+                                    newEffectId = NextVisualTableId("spellvisualeffectname");
+                                    effectRow["ID"] = newEffectId;
+                                    InsertVisualRow("spellvisualeffectname", effectRow);
+                                    effectCopies[sourceEffectId] = newEffectId;
+                                }
+                            }
+                            kitRow[effectField] = newEffectId;
+                        }
+                        InsertVisualRow("spellvisualkit", kitRow);
+                        visualRow[kitField] = newKitId;
+                    }
+                }
+                InsertVisualRow("spellvisual", visualRow);
+                return newVisualId;
+            }
+        }
+
+        private uint NextVisualTableId(string table)
+        {
+            var value = adapter.QuerySingleValue($"SELECT MAX(ID) FROM `{table}`");
+            return value == null || value == DBNull.Value ? 1u : Convert.ToUInt32(value, CultureInfo.InvariantCulture) + 1u;
+        }
+
+        private void EnsureVisualIdChoices()
+        {
+            if (VisualSelectIdTxt.Items.Count > 0 || adapter == null)
+                return;
+            using (var visuals = adapter.Query("SELECT ID FROM spellvisual ORDER BY ID"))
+            {
+                if (visuals == null)
+                    return;
+                VisualSelectIdTxt.ItemsSource = visuals.Rows.Cast<DataRow>()
+                    .Select(row => row["ID"].ToString())
+                    .ToList();
+            }
         }
 
         private void SelectItem_Click(object sender, RoutedEventArgs e)
@@ -4783,6 +5219,14 @@ namespace SpellEditor
             VisualMissileEffectList.ItemsSource = null;
             UpdateSpellVisualTab(uint.Parse(menu.VisualId), 0, true);
             ShowFlyoutMessage($"SpellVisual {menu.VisualId} MissileModel set to {menu.MissileId}.");
+        }
+
+        private void InsertVisualRow(string table, DataRow row)
+        {
+            var columns = row.Table.Columns.Cast<DataColumn>().Select(column => $"`{column.ColumnName}`");
+            var values = row.ItemArray.Select(value =>
+                "'" + adapter.EscapeString(Convert.ToString(value, CultureInfo.InvariantCulture)) + "'");
+            adapter.Execute($"INSERT INTO `{table}` ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)})");
         }
         #endregion
 
@@ -4862,6 +5306,8 @@ namespace SpellEditor
         {
             if (updating || adapter == null || !Config.IsInit || e.OriginalSource != MainTabControl)
                 return;
+            if (e.AddedItems.Count == 0)
+                return;
             var tab = e.AddedItems[0];
             if (tab == IconTab)
             {
@@ -4873,7 +5319,243 @@ namespace SpellEditor
                 uint.TryParse(idStr, out var id);
                 UpdateSpellVisualTab(id);
             }
+            else if (EmulatorIntegrationInstance != null && EmulatorIntegrationInstance.Owns(tab))
+            {
+                EmulatorIntegrationInstance.Activate(tab);
+            }
         }
+
+        /// <summary>There is nothing to edit until a spell is picked, so only the select tab stays up.</summary>
+        private void UpdateSpellTabVisibility()
+        {
+            if (spellEditorTabs == null)
+                return;
+
+            var visibility = _selectedID != 0 ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var tab in spellEditorTabs)
+                tab.Visibility = visibility;
+
+            UpdateEmulatorTabVisibility();
+
+            if (_selectedID == 0 && MainTabControl.SelectedIndex != 0)
+                MainTabControl.SelectedIndex = 0;
+        }
+
+        #region Emulator world database
+        private WorldIntegration EmulatorIntegrationInstance;
+
+        /// <summary>
+        /// Reuses the already version-filtered choices shown by the client Spell.dbc editor for
+        /// matching spell_template fields. This keeps TBC effects, auras and targets within the
+        /// same verified ranges instead of maintaining a second numeric list.
+        /// </summary>
+        internal IEnumerable<EnumValue> GetServerSpellOptions(string source)
+        {
+            var dbcBinding = source switch
+            {
+                "Dispel" => "SpellDispelType",
+                "Mechanic" => "SpellMechanic",
+                "Radius" => "SpellRadius",
+                "SpellFocus" => "SpellFocusObject",
+                "CastTime" => "SpellCastTimes",
+                "Duration" => "SpellDuration",
+                "Range" => "SpellRange",
+                _ => null
+            };
+            if (dbcBinding != null && DBCManager.GetInstance().FindDbcForBinding(dbcBinding) is IBoxContentProvider provider)
+            {
+                return provider.GetAllBoxes().Select(box =>
+                {
+                    var label = box.NameLabel?.Content?.ToString() ?? box.Name ?? "Unknown";
+                    var idPrefix = box.ID.ToString(CultureInfo.InvariantCulture) + " - ";
+                    if (label.StartsWith(idPrefix, StringComparison.Ordinal))
+                        label = label.Substring(idPrefix.Length);
+                    return new EnumValue(box.ID, label.Replace('\n', ' ').Replace('\t', ' ').Trim());
+                }).ToList();
+            }
+
+            ItemsControl control = source switch
+            {
+                "Category" => Category,
+                "Effect" => SpellEffect1,
+                "Target" => TargetA1,
+                "Aura" => ApplyAuraName1,
+                "Family" => SpellFamilyName,
+                _ => null
+            };
+            if (control == null)
+                return Enumerable.Empty<EnumValue>();
+
+            var items = control.ItemsSource?.Cast<object>() ?? control.Items.Cast<object>();
+            var result = new List<EnumValue>();
+            foreach (var item in items)
+            {
+                var label = item?.ToString() ?? string.Empty;
+                var separator = label.IndexOf(" - ", StringComparison.Ordinal);
+                if (separator <= 0 || !long.TryParse(label.Substring(0, separator), out var value))
+                    continue;
+                result.Add(new EnumValue(value, label.Substring(separator + 3)));
+            }
+            return result;
+        }
+
+        /// <summary>Hides the world tables unless the integration is turned on in the settings.</summary>
+        public void UpdateEmulatorTabVisibility()
+        {
+            // Not every core has a spell_custom_attr table, VMangos for one
+            var showCustomAttributes = WorldDatabase.IsConfigured && Emulators.Current.CustomAttributes != null;
+            var visibility = showCustomAttributes ? Visibility.Visible : Visibility.Collapsed;
+            CustomAttributesLabel.Visibility = visibility;
+            CustomAttributesScroll.Visibility = visibility;
+
+            if (EmulatorIntegrationInstance == null)
+            {
+                if (!WorldDatabase.IsConfigured)
+                    return;
+                EmulatorIntegrationInstance = new WorldIntegration(this, MainTabControl, Emulators.Current);
+            }
+            EmulatorIntegrationInstance.UpdateTabs(_selectedID != 0);
+        }
+
+        /// <summary>
+        /// Called after the settings are saved. The connection details, and possibly the core the
+        /// tabs were built for, have changed, so the old integration is thrown away.
+        /// </summary>
+        public void ReloadEmulatorIntegration()
+        {
+            EmulatorIntegrationInstance?.RemoveTabs();
+            EmulatorIntegrationInstance = null;
+            loadedCustomAttributes = null;
+            // Attribute labels are version/core-specific as well as the world database tabs.
+            RefreshAllUIElements();
+            UpdateEmulatorTabVisibility();
+            EmulatorIntegrationInstance?.SetSpell(_selectedID);
+            _ = RefreshCustomAttributesAsync(_selectedID);
+        }
+
+        /// <summary>The bits differ per core, so the list is rebuilt when the emulator changes.</summary>
+        private void RefreshCustomAttributeBoxes()
+        {
+            CustomAttributes.Children.Clear();
+            customAttributes.Clear();
+
+            var flags = Emulators.Current.CustomAttributes;
+            if (flags == null)
+                return;
+
+            foreach (var flag in flags.Flags)
+            {
+                ThreadSafeCheckBox box = new ThreadSafeCheckBox
+                {
+                    Content = flag.Name,
+                    ToolTip = $"{flag.Name} (0x{flag.Value:X})",
+                    Tag = flag.Value,
+                    Margin = new Thickness(0, 5, 0, 0)
+                };
+
+                CustomAttributes.Children.Add(box);
+                customAttributes.Add(box);
+            }
+
+            ApplyAttributes2Filter();
+        }
+
+        /// <summary>A null mask means the read never happened, so nothing is written back.</summary>
+        private async Task RefreshCustomAttributesAsync(uint spellId)
+        {
+            loadedCustomAttributes = null;
+            ApplyCustomAttributes(0);
+            if (customAttributes.Count == 0)
+                return;
+
+            uint? mask = null;
+            if (spellId != 0 && WorldDatabase.IsConfigured && EmulatorIntegrationInstance != null)
+            {
+                var emulator = EmulatorIntegrationInstance.Emulator;
+                mask = await Task.Run(() =>
+                {
+                    var database = EmulatorIntegrationInstance.EnsureDatabase();
+                    if (database == null)
+                        return (uint?)null;
+                    try
+                    {
+                        var value = database.QuerySingleValue(
+                            $"SELECT `{emulator.CustomAttrValueColumn}` FROM `{emulator.CustomAttrTable}` " +
+                            $"WHERE `{emulator.CustomAttrSpellColumn}` = {spellId} LIMIT 1");
+                        return value == null ? 0u : Convert.ToUInt32(value);
+                    }
+                    catch (Exception exception)
+                    {
+                        Logger.Error(exception, $"Failed to read {emulator.CustomAttrTable}");
+                        return (uint?)null;
+                    }
+                });
+            }
+
+            if (spellId != selectedID)
+                return;
+
+            loadedCustomAttributes = mask;
+            ApplyCustomAttributes(mask ?? 0);
+            foreach (var box in customAttributes)
+                box.IsEnabled = mask.HasValue;
+
+            // These arrive after the spell has loaded, so they need the tick filter of their own
+            ApplyAttributes2Filter();
+        }
+
+        private void ApplyCustomAttributes(uint mask)
+        {
+            foreach (var box in customAttributes)
+                box.IsChecked = (mask & (uint)box.Tag) != 0;
+        }
+
+        private uint GetCustomAttributesMask()
+        {
+            uint mask = 0;
+            foreach (var box in customAttributes)
+            {
+                if (box.IsChecked == true)
+                    mask |= (uint)box.Tag;
+            }
+            return mask;
+        }
+
+        /// <summary>Never throws, a world database that is down must not undo a good DBC save.</summary>
+        private bool SaveCustomAttributes(uint spellId, out string error)
+        {
+            error = null;
+            if (!loadedCustomAttributes.HasValue || spellId == 0)
+                return false;
+
+            var mask = GetCustomAttributesMask();
+            if (mask == loadedCustomAttributes.Value)
+                return false;
+
+            try
+            {
+                var database = EmulatorIntegrationInstance?.EnsureDatabase();
+                if (database == null)
+                    throw new Exception(SafeTryFindResource("emu_custom_attr_unavailable"));
+
+                var emulator = EmulatorIntegrationInstance.Emulator;
+                database.Execute(mask == 0
+                    ? $"DELETE FROM `{emulator.CustomAttrTable}` WHERE `{emulator.CustomAttrSpellColumn}` = {spellId}"
+                    : $"INSERT INTO `{emulator.CustomAttrTable}` " +
+                      $"(`{emulator.CustomAttrSpellColumn}`, `{emulator.CustomAttrValueColumn}`) " +
+                      $"VALUES ({spellId}, {mask}) " +
+                      $"ON DUPLICATE KEY UPDATE `{emulator.CustomAttrValueColumn}` = {mask}");
+                loadedCustomAttributes = mask;
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "Failed to save the spell custom attributes");
+                error = string.Format(SafeTryFindResource("emu_custom_attr_save_failed"), exception.Message);
+                return false;
+            }
+        }
+        #endregion
 
         private async void SelectSpell_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -5196,7 +5878,7 @@ namespace SpellEditor
                     if (spellEffectData.UsesItemType == false)
                         effectItemTypeBoxes[effect_id].Text = "0";
                     if (spellEffectData.UsesSpell == false)
-                        effectTriggerSpellBoxes[effect_id].Content = "0 - None";
+                        SetTriggerSpell(effect_id, 0);
                     if (spellEffectData.UsesAmplitude == false)
                         effectAmplitudeBoxes[effect_id].Text = "0";
                 }
@@ -5313,34 +5995,18 @@ namespace SpellEditor
             if (IconGrid == null || !IconGrid.IsInitialized)
                 return;
 
-            double newSize = e.NewValue / 4;
-            var margin = new Thickness(newSize, 0, 0, 0);
-            ((SpellIconDBC)DBCManager.GetInstance().FindDbcForBinding("SpellIcon"))?.updateIconSize(newSize, margin);
-
-            _pendingSliderValue = e.NewValue;
-            if (_sliderDebounce == null)
-            {
-                _sliderDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-                _sliderDebounce.Tick += SliderDebounce_Tick;
-            }
-            _sliderDebounce.Stop();
-            _sliderDebounce.Start();
+            ((SpellIconDBC)DBCManager.GetInstance().FindDbcForBinding("SpellIcon"))?.SetIconSize(e.NewValue);
         }
 
-        private void SliderDebounce_Tick(object sender, EventArgs e)
+        private void IconGrid_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            _sliderDebounce.Stop();
-            double newValue = _pendingSliderValue;
-            var margin = new Thickness(newValue / 4, 0, 0, 0);
-            foreach (System.Windows.Controls.Image image in IconGrid.Children)
-            {
-                image.Margin = margin;
-                image.Width = newValue;
-                image.Height = newValue;
-            }
+            if (!((e.OriginalSource as FrameworkElement)?.DataContext is IconEntry entry))
+                return;
+            NewIcon.Source = entry.Source;
+            newIconID = entry.Id;
         }
 
-        public DataRow GetSpellRowById(uint spellId) => adapter.Query($"SELECT * FROM `{"spell"}` WHERE `ID` = '{spellId}' LIMIT 1").Rows[0];
+        public DataRow GetSpellRowById(uint spellId) => SpellDBC.GetRecordById(spellId, this);
 
         public string GetSpellNameById(uint spellId)
         {
@@ -5353,6 +6019,10 @@ namespace SpellEditor
             string path = $"pack://SiteOfOrigin:,,,/Languages/{language}.xaml";
             System.Windows.Application.Current.Resources.MergedDictionaries[0].Source = new Uri(path);
             Config.Language = language;
+            // The world database flag and tooltip labels are cached, drop them so they are read again
+            WorldEnums.InvalidateLocalisation();
+            UpdateEmulatorTabVisibility();
+            EmulatorIntegrationInstance?.RefreshLocalisation();
             RefreshAllUIElements();
         }
 
@@ -5387,34 +6057,36 @@ namespace SpellEditor
             }
         }
 
-        private void FilterSpellEffectCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void FilterSpellEffectCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.OriginalSource != FilterSpellEffectCombo)
             {
                 return;
             }
-            
+
             var box = sender as ComboBox;
             var selected = box.SelectedItem?.ToString() ?? "0 ";
             var id = int.Parse(selected.Substring(0, selected.IndexOf(' ')));
-            var view = CollectionViewSource.GetDefaultView(SelectSpell.Items);
             // Clear filter if id is 0
             if (id == 0)
             {
-                view.Filter = obj => true;
+                CollectionViewSource.GetDefaultView(SelectSpell.Items).Filter = obj => true;
                 return;
             }
-            // Collect all spell ID's with the effect id
-            var matchingSpells = adapter.Query($"SELECT id FROM spell WHERE Effect1 = {id} or Effect2 = {id} or Effect3 = {id}").Rows;
+            await ApplySpellIdFilterAsync($"Effect1 = {id} or Effect2 = {id} or Effect3 = {id}");
+        }
+
+        private async Task ApplySpellIdFilterAsync(string whereClause)
+        {
+            var matchingSpells = (await adapter.QueryAsync($"SELECT id FROM spell WHERE {whereClause}")).Rows;
             var matchingSpellsSet = new HashSet<string>();
             foreach (DataRow record in matchingSpells)
-            {
                 matchingSpellsSet.Add(record[0].ToString());
-            }
-            // Apply filter
-            view.Filter = obj =>
+
+            CollectionViewSource.GetDefaultView(SelectSpell.Items).Filter = obj =>
             {
-                var panel = obj as StackPanel;
+                if (!(obj is StackPanel panel))
+                    return false;
                 using (var enumerator = panel.GetChildObjects().GetEnumerator())
                 {
                     while (enumerator.MoveNext())
@@ -5422,20 +6094,14 @@ namespace SpellEditor
                         if (!(enumerator.Current is TextBlock block))
                             continue;
                         var name = block.Text.TrimStart();
-                        var blockId = name.Substring(0, name.IndexOf(' '));
-                        return matchingSpellsSet.Contains(blockId);
+                        return matchingSpellsSet.Contains(name.Substring(0, name.IndexOf(' ')));
                     }
                 }
                 return false;
             };
         }
 
-        private void ApplyFilter(HashSet<string> set)
-        {
-
-        }
-
-        private void FilterCategoryCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void FilterCategoryCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.OriginalSource != FilterCategoryCombo)
             {
@@ -5444,44 +6110,18 @@ namespace SpellEditor
             var box = sender as ThreadSafeComboBox;
             string selected = box.SelectedItem?.ToString() ?? "0 -";
 
-            int id = 0;
+            int id = GetNumberPrefixFromText(selected);
 
-            id = GetNumberPrefixFromText(selected);
-
-            var view = CollectionViewSource.GetDefaultView(SelectSpell.Items);
             // Clear filter if id is 0
             if (id == 0)
             {
-                view.Filter = obj => true;
+                CollectionViewSource.GetDefaultView(SelectSpell.Items).Filter = obj => true;
                 return;
             }
-            // Collect all spell ID's with the family id
-            var matchingSpells = adapter.Query($"SELECT id FROM spell WHERE Category = {id}").Rows;
-            var matchingSpellsSet = new HashSet<string>();
-            foreach (DataRow record in matchingSpells)
-            {
-                matchingSpellsSet.Add(record[0].ToString());
-            }
-            // Apply filter
-            view.Filter = obj =>
-            {
-                var panel = obj as StackPanel;
-                using (var enumerator = panel.GetChildObjects().GetEnumerator())
-                {
-                    while (enumerator.MoveNext())
-                    {
-                        if (!(enumerator.Current is TextBlock block))
-                            continue;
-                        var name = block.Text.TrimStart();
-                        var blockId = name.Substring(0, name.IndexOf(' '));
-                        return matchingSpellsSet.Contains(blockId);
-                    }
-                }
-                return false;
-            };
+            await ApplySpellIdFilterAsync($"Category = {id}");
         }
 
-        private void FilterFamilyCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void FilterFamilyCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.OriginalSource != FilterFamilyCombo)
             {
@@ -5490,40 +6130,16 @@ namespace SpellEditor
             var box = sender as FilteredComboBox;
             var selected = box.SelectedItem?.ToString() ?? "0 ";
             var id = int.Parse(selected.Substring(0, selected.IndexOf(' ')));
-            var view = CollectionViewSource.GetDefaultView(SelectSpell.Items);
             // Clear filter if id is 0
             if (id == 0)
             {
-                view.Filter = obj => true;
+                CollectionViewSource.GetDefaultView(SelectSpell.Items).Filter = obj => true;
                 return;
             }
-            // Collect all spell ID's with the family id
-            var matchingSpells = adapter.Query($"SELECT id FROM spell WHERE SpellFamilyName = {id}").Rows;
-            var matchingSpellsSet = new HashSet<string>();
-            foreach (DataRow record in matchingSpells)
-            {
-                matchingSpellsSet.Add(record[0].ToString());
-            }
-            // Apply filter
-            view.Filter = obj =>
-            {
-                var panel = obj as StackPanel;
-                using (var enumerator = panel.GetChildObjects().GetEnumerator())
-                {
-                    while (enumerator.MoveNext())
-                    {
-                        if (!(enumerator.Current is TextBlock block))
-                            continue;
-                        var name = block.Text.TrimStart();
-                        var blockId = name.Substring(0, name.IndexOf(' '));
-                        return matchingSpellsSet.Contains(blockId);
-                    }
-                }
-                return false;
-            };
+            await ApplySpellIdFilterAsync($"SpellFamilyName = {id}");
         }
 
-        private void FilterAuraCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void FilterAuraCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.OriginalSource != FilterAuraCombo)
             {
@@ -5532,117 +6148,45 @@ namespace SpellEditor
             var box = sender as ComboBox;
             var selected = box.SelectedItem?.ToString() ?? "0 ";
             var id = int.Parse(selected.Substring(0, selected.IndexOf(' ')));
-            var view = CollectionViewSource.GetDefaultView(SelectSpell.Items);
             // Clear filter if id is 0
             if (id == 0)
             {
-                view.Filter = obj => true;
+                CollectionViewSource.GetDefaultView(SelectSpell.Items).Filter = obj => true;
                 return;
             }
-            // Collect all spell ID's with the effect id
-            var matchingSpells = adapter.Query($"SELECT id FROM spell WHERE EffectApplyAuraName1 = {id} or EffectApplyAuraName2 = {id} or EffectApplyAuraName3 = {id}").Rows;
-            var matchingSpellsSet = new HashSet<string>();
-            foreach (DataRow record in matchingSpells)
-            {
-                matchingSpellsSet.Add(record[0].ToString());
-            }
-            // Apply filter
-            view.Filter = obj =>
-            {
-                var panel = obj as StackPanel;
-                using (var enumerator = panel.GetChildObjects().GetEnumerator())
-                {
-                    while (enumerator.MoveNext())
-                    {
-                        if (!(enumerator.Current is TextBlock block))
-                            continue;
-                        var name = block.Text.TrimStart();
-                        var blockId = name.Substring(0, name.IndexOf(' '));
-                        return matchingSpellsSet.Contains(blockId);
-                    }
-                }
-                return false;
-            };
+            await ApplySpellIdFilterAsync($"EffectApplyAuraName1 = {id} or EffectApplyAuraName2 = {id} or EffectApplyAuraName3 = {id}");
         }
 
-        private void FilterSpellTargetA_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void FilterSpellTargetA_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.OriginalSource != FilterSpellTargetA)
                 return;
             var box = sender as ComboBox;
             var selected = box.SelectedItem?.ToString() ?? "0 ";
             var id = int.Parse(selected.Substring(0, selected.IndexOf(' ')));
-            var view = CollectionViewSource.GetDefaultView(SelectSpell.Items);
             // Clear filter if id is 0
             if (id == 0)
             {
-                view.Filter = obj => true;
+                CollectionViewSource.GetDefaultView(SelectSpell.Items).Filter = obj => true;
                 return;
             }
-            // Collect all spell ID's with the effect id
-            var matchingSpells = adapter.Query($"SELECT id FROM spell WHERE EffectImplicitTargetA1 = {id} or EffectImplicitTargetA2 = {id} or EffectImplicitTargetA3 = {id}").Rows;
-            var matchingSpellsSet = new HashSet<string>();
-            foreach (DataRow record in matchingSpells)
-            {
-                matchingSpellsSet.Add(record[0].ToString());
-            }
-            // Apply filter
-            view.Filter = obj =>
-            {
-                var panel = obj as StackPanel;
-                using (var enumerator = panel.GetChildObjects().GetEnumerator())
-                {
-                    while (enumerator.MoveNext())
-                    {
-                        if (!(enumerator.Current is TextBlock block))
-                            continue;
-                        var name = block.Text.TrimStart();
-                        var blockId = name.Substring(0, name.IndexOf(' '));
-                        return matchingSpellsSet.Contains(blockId);
-                    }
-                }
-                return false;
-            };
+            await ApplySpellIdFilterAsync($"EffectImplicitTargetA1 = {id} or EffectImplicitTargetA2 = {id} or EffectImplicitTargetA3 = {id}");
         }
 
-        private void FilterSpellTargetB_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void FilterSpellTargetB_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.OriginalSource != FilterSpellTargetB)
                 return;
             var box = sender as ComboBox;
             var selected = box.SelectedItem?.ToString() ?? "0 ";
             var id = int.Parse(selected.Substring(0, selected.IndexOf(' ')));
-            var view = CollectionViewSource.GetDefaultView(SelectSpell.Items);
             // Clear filter if id is 0
             if (id == 0)
             {
-                view.Filter = obj => true;
+                CollectionViewSource.GetDefaultView(SelectSpell.Items).Filter = obj => true;
                 return;
             }
-            // Collect all spell ID's with the effect id
-            var matchingSpells = adapter.Query($"SELECT id FROM spell WHERE EffectImplicitTargetB1 = {id} or EffectImplicitTargetB2 = {id} or EffectImplicitTargetB3 = {id}").Rows;
-            var matchingSpellsSet = new HashSet<string>();
-            foreach (DataRow record in matchingSpells)
-            {
-                matchingSpellsSet.Add(record[0].ToString());
-            }
-            // Apply filter
-            view.Filter = obj =>
-            {
-                var panel = obj as StackPanel;
-                using (var enumerator = panel.GetChildObjects().GetEnumerator())
-                {
-                    while (enumerator.MoveNext())
-                    {
-                        if (!(enumerator.Current is TextBlock block))
-                            continue;
-                        var name = block.Text.TrimStart();
-                        var blockId = name.Substring(0, name.IndexOf(' '));
-                        return matchingSpellsSet.Contains(blockId);
-                    }
-                }
-                return false;
-            };
+            await ApplySpellIdFilterAsync($"EffectImplicitTargetB1 = {id} or EffectImplicitTargetB2 = {id} or EffectImplicitTargetB3 = {id}");
         }
 
         private void VisualMissileFilter_TextChanged(object sender, TextChangedEventArgs e)
@@ -5747,32 +6291,246 @@ namespace SpellEditor
 
         }
 
+        private void SetTriggerSpellEnabled(int effectIndex, bool enabled)
+        {
+            effectTriggerSpellBoxes[effectIndex].IsEnabled = enabled;
+            effectTriggerSpellPickButtons[effectIndex].IsEnabled = enabled;
+        }
+
+        private void SetTriggerSpell(int effectIndex, uint spellId)
+        {
+            effectTriggerSpells[effectIndex] = spellId;
+            effectTriggerSpellBoxes[effectIndex].UIntValue = spellId;
+            effectTriggerSpellNames[effectIndex].Text = GetSpellNameOrPlaceholder(spellId);
+        }
+
+        private void TriggerSpell_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double?> e)
+        {
+            if (effectTriggerSpellBoxes == null)
+                return;
+
+            int effect_index = Array.IndexOf(effectTriggerSpellBoxes, sender as UIntTextBox);
+            if (effect_index < 0)
+                return;
+
+            uint spellId = effectTriggerSpellBoxes[effect_index].UIntValue;
+            effectTriggerSpells[effect_index] = spellId;
+            effectTriggerSpellNames[effect_index].Text = GetSpellNameOrPlaceholder(spellId);
+        }
+
         private void TriggerSpell_Click(object sender, RoutedEventArgs e)
         {
-            int effect_index = 0;
-
-            if (sender == TriggerSpell2)
-                effect_index = 1;
-            else if (sender == TriggerSpell3)
-                effect_index = 2;
-            else
-                Debug.Assert(sender == TriggerSpell1);
+            int effect_index = Array.IndexOf(effectTriggerSpellPickButtons, sender as Button);
+            Debug.Assert(effect_index >= 0);
+            if (effect_index < 0)
+                return;
 
             uint spell_id = effectTriggerSpells[effect_index];
             string select_text = $"Selecting for Effect#{effect_index} Trigger Spell";
             var dlg = new SpellPickerDialog(this, spell_id, select_text);
 
             if (dlg.ShowDialog() == true)
+                SetTriggerSpell(effect_index, dlg.SelectedId);
+        }
+
+        private void SetSpellRef(int index, uint spellId)
+        {
+            spellRefValues[index] = spellId;
+            spellRefBoxes[index].UIntValue = spellId;
+            spellRefNames[index].Text = GetSpellNameOrPlaceholder(spellId);
+        }
+
+        private void SpellRef_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double?> e)
+        {
+            if (spellRefBoxes == null)
+                return;
+
+            int index = Array.IndexOf(spellRefBoxes, sender as UIntTextBox);
+            if (index < 0)
+                return;
+
+            uint spellId = spellRefBoxes[index].UIntValue;
+            spellRefValues[index] = spellId;
+            spellRefNames[index].Text = GetSpellNameOrPlaceholder(spellId);
+        }
+
+        private void SpellRef_Click(object sender, RoutedEventArgs e)
+        {
+            int index = Array.IndexOf(spellRefPickButtons, sender as Button);
+            Debug.Assert(index >= 0);
+            if (index < 0)
+                return;
+
+            var dlg = new SpellPickerDialog(this, spellRefValues[index], $"Selecting for {SpellRefLabels[index]}");
+
+            if (dlg.ShowDialog() == true)
+                SetSpellRef(index, dlg.SelectedId);
+        }
+
+        #region Effect copy and reset
+
+        /// <summary>
+        /// What an unused effect looks like in Spell.dbc. Everything is zeroed apart from the
+        /// damage multiplier, which Blizzard leaves at 1 on the effects they are not using.
+        /// The key is the column name without the effect number on the end.
+        /// </summary>
+        private static readonly Dictionary<string, string> EmptyEffectValues = new Dictionary<string, string>
+        {
+            { "Effect", "0" },
+            { "EffectDieSides", "0" },
+            { "EffectRealPointsPerLevel", "0" },
+            { "EffectBasePoints", "0" },
+            { "EffectMechanic", "0" },
+            { "EffectImplicitTargetA", "0" },
+            { "EffectImplicitTargetB", "0" },
+            { "EffectRadiusIndex", "0" },
+            { "EffectApplyAuraName", "0" },
+            { "EffectAmplitude", "0" },
+            { "EffectMultipleValue", "0" },
+            { "EffectChainTarget", "0" },
+            { "EffectItemType", "0" },
+            { "EffectMiscValue", "0" },
+            { "EffectMiscValueB", "0" },
+            { "EffectTriggerSpell", "0" },
+            { "EffectPointsPerComboPoint", "0" },
+            { "EffectSpellClassMaskA", "0" },
+            { "EffectSpellClassMaskB", "0" },
+            { "EffectSpellClassMaskC", "0" },
+            { "EffectDamageMultiplier", "1" },
+            { "EffectBonusMultiplier", "0" }
+        };
+
+        private int EffectIndexOfButton(object sender)
+        {
+            if (sender == EffectCopyFrom1 || sender == EffectReset1)
+                return 1;
+            if (sender == EffectCopyFrom2 || sender == EffectReset2)
+                return 2;
+            return 3;
+        }
+
+        private void EffectCopyFrom_Click(object sender, RoutedEventArgs e)
+        {
+            if (adapter == null || selectedID == 0)
+                return;
+
+            var effectIndex = EffectIndexOfButton(sender);
+            var dialog = new SpellPickerDialog(this, selectedID,
+                string.Format(SafeTryFindResource("effectCopyFromPrompt"), effectIndex));
+            if (dialog.ShowDialog() != true || dialog.SelectedId == 0)
+                return;
+
+            try
             {
-                // when closed
-                uint selectedId = dlg.SelectedId;
-                effectTriggerSpells[effect_index] = selectedId;
-
-                string text = GetSpellDescString(selectedId);
-                effectTriggerSpellBoxes[effect_index].Content = text;
-
+                using (var data = adapter.Query($"SELECT * FROM `spell` WHERE `ID` = '{dialog.SelectedId}' LIMIT 1"))
+                {
+                    if (data.Rows.Count == 0)
+                    {
+                        HandleErrorMessage(string.Format(SafeTryFindResource("effectCopyFromMissing"), dialog.SelectedId));
+                        return;
+                    }
+                    var source = data.Rows[0];
+                    // The same effect number is taken from the other spell, so effect 2 copies
+                    // from effect 2
+                    ApplyEffect(effectIndex, column => source[column + effectIndex].ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to copy an effect from another spell");
+                HandleErrorMessage(ex.Message);
             }
         }
+
+        private void EffectReset_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyEffect(EffectIndexOfButton(sender), column => EmptyEffectValues[column]);
+        }
+
+        /// <summary>
+        /// Fills one effect tab from a set of Spell.dbc values. The reader is handed a column name
+        /// without the effect number on the end, so the same code can fill the tab from another
+        /// spell or from the blank effect defaults. Nothing is written to the database here, the
+        /// values sit in the controls until the spell is saved.
+        /// </summary>
+        private void ApplyEffect(int effectIndex, Func<string, string> read)
+        {
+            var i = effectIndex - 1;
+            var isTbcOrGreater = WoWVersionManager.IsTbcOrGreaterSelected;
+            var isWotlkOrGreater = WoWVersionManager.IsWotlkOrGreaterSelected;
+
+            var dieSides = new[] { DieSides1, DieSides2, DieSides3 };
+            var pointsPerLevel = new[] { BasePointsPerLevel1, BasePointsPerLevel2, BasePointsPerLevel3 };
+            var basePoints = new[] { BasePoints1, BasePoints2, BasePoints3 };
+            var mechanics = new[] { Mechanic1, Mechanic2, Mechanic3 };
+            var targetsA = new[] { TargetA1, TargetA2, TargetA3 };
+            var targetsB = new[] { TargetB1, TargetB2, TargetB3 };
+            var radiuses = new[] { RadiusIndex1, RadiusIndex2, RadiusIndex3 };
+            var perComboPoint = new[] { PointsPerComboPoint1, PointsPerComboPoint2, PointsPerComboPoint3 };
+            var damageMultipliers = new[] { EffectDamageMultiplier1, EffectDamageMultiplier2, EffectDamageMultiplier3 };
+            var bonusMultipliers = new[] { EffectBonusMultiplier1, EffectBonusMultiplier2, EffectBonusMultiplier3 };
+
+            var effectType = int.Parse(read("Effect"));
+            var auraType = int.Parse(read("EffectApplyAuraName"));
+
+            // The combo boxes write straight back to the database as soon as the user picks
+            // something, so hold them off while a whole effect goes in at once
+            var wasUpdating = updating;
+            updating = true;
+            try
+            {
+                SetVersionedEnumValue(spellEffectTypeBoxes[i], versionedSpellEffectEntries, (uint)effectType, "spell effect");
+                SetVersionedEnumValue(effectAuraNameBoxes[i], versionedAuraEntries, (uint)auraType, "aura type");
+                dieSides[i].ThreadSafeText = read("EffectDieSides");
+                pointsPerLevel[i].ThreadSafeText = read("EffectRealPointsPerLevel");
+                basePoints[i].ThreadSafeText = read("EffectBasePoints");
+                mechanics[i].ThreadSafeIndex = int.Parse(read("EffectMechanic"));
+                SetVersionedEnumValue(targetsA[i], versionedTargetEntries, uint.Parse(read("EffectImplicitTargetA")), "implicit target");
+                SetVersionedEnumValue(targetsB[i], versionedTargetEntries, uint.Parse(read("EffectImplicitTargetB")), "implicit target");
+
+                var loadRadiuses = (SpellRadius)DBCManager.GetInstance().FindDbcForBinding("SpellRadius");
+                radiuses[i].ThreadSafeIndex = loadRadiuses.UpdateRadiusIndexes(uint.Parse(read("EffectRadiusIndex")));
+
+                effectAmplitudeBoxes[i].ThreadSafeText = read("EffectAmplitude");
+                effectMultipleValueBoxes[i].ThreadSafeText = read("EffectMultipleValue");
+                effectChainTargetBoxes[i].ThreadSafeText = read("EffectChainTarget");
+                effectItemTypeBoxes[i].ThreadSafeText = read("EffectItemType");
+                perComboPoint[i].ThreadSafeText = read("EffectPointsPerComboPoint");
+                damageMultipliers[i].ThreadSafeText = read("EffectDamageMultiplier");
+                if (isWotlkOrGreater)
+                    bonusMultipliers[i].ThreadSafeText = read("EffectBonusMultiplier");
+
+                SetTriggerSpell(i, uint.Parse(read("EffectTriggerSpell")));
+
+                // Rebuilding the misc value control first, otherwise the value goes into whatever
+                // control the previous effect type left behind
+                SetupMiscValueControl(effectIndex, effectType, auraType);
+                SetMiscValue(effectIndex, 1, int.Parse(read("EffectMiscValue")));
+                if (isTbcOrGreater)
+                    SetMiscValue(effectIndex, 2, int.Parse(read("EffectMiscValueB")));
+
+                if (isWotlkOrGreater)
+                {
+                    familyFlagsA[i] = uint.Parse(read("EffectSpellClassMaskA"));
+                    familyFlagsB[i] = uint.Parse(read("EffectSpellClassMaskB"));
+                    familyFlagsC[i] = uint.Parse(read("EffectSpellClassMaskC"));
+                }
+            }
+            finally
+            {
+                updating = wasUpdating;
+            }
+
+            GenerateSpellEffectHeader(effectIndex);
+            if (isWotlkOrGreater)
+            {
+                var familyName = SpellFamilyName.GetNumberPrefixFromText();
+                Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                    spellFamilyClassMaskParser.UpdateAllEffectFamiliesLists(this, familyName, adapter)));
+            }
+        }
+
+        #endregion
 
         private void Category_SelectionEffectivelyChanged(object sender, SelectionEffectivelyChangedEventArgs e)
         {

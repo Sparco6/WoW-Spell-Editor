@@ -65,7 +65,9 @@ When a spell has no visual selected (value of 0) then a spell visual kit from an
 
 You can copy and paste kits and effects/attachments freely. Whenever you paste it creates a new copy of the item you are pasting rather than using the existing one. This prevents you accidentally modifying another spell.
 
-This feature is in its very early stages. Some values from the visual kit data are not handled in the UI. Other features can be added like displaying other spells using the same kit/effect/attachment or generally being able to search all existing objects.
+The visual editor follows the selected expansion binding. TBC exposes its 11 SpellVisual kit links
+and 12 SpellVisualKit effect slots without writing WotLK-only missile offsets or attachment tables.
+Only relationships whose supporting DBC files have been imported can be edited.
 
 The full class model is not currently supported. The spell visual class model looks like this:
 

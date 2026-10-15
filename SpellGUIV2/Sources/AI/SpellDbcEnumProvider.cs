@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Markup;
 using NLog;
+using SpellEditor.Sources.VersionControl;
 
 namespace SpellEditor.Sources.AI
 {
@@ -65,6 +67,14 @@ namespace SpellEditor.Sources.AI
                     AddTargetSynonyms();
                     AddPowerTypeSynonyms();
 
+                    if (WoWVersionManager.GetInstance().SelectedVersion().Identity == 243)
+                    {
+                        RemoveIdsAtOrAbove(EffectNameToId, 154);
+                        RemoveIdsAtOrAbove(AuraNameToId, 262);
+                        RemoveIdsAtOrAbove(TargetNameToId, 94);
+                        RemoveIdsAtOrAbove(PowerTypeNameToId, 5);
+                    }
+
                     _initialized = true;
                     Logger.Info("SpellDbcEnumProvider initialised successfully.");
                 }
@@ -79,6 +89,12 @@ namespace SpellEditor.Sources.AI
                 PowerTypeNameToId = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
                 _initialized = true;
             }
+        }
+
+        private static void RemoveIdsAtOrAbove(Dictionary<string, uint> values, uint maximumExclusive)
+        {
+            foreach (var key in values.Where(pair => pair.Value >= maximumExclusive).Select(pair => pair.Key).ToList())
+                values.Remove(key);
         }
 
         private static Dictionary<string, uint> LoadList(ResourceDictionary dict, string key, bool useIndexAsId)
