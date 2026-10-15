@@ -231,6 +231,7 @@ namespace SpellEditor.Sources.Emulator.CMangos.Tbc
         public override string Name => "spell_template";
         public override string OrderBy => "`Id`";
         public override bool IsSingleRow => true;
+        public override bool CanDelete => false;
         public override string SpellFilter(RankChain chain) => $"`Id` = {chain.SpellId}";
 
         private static FlagSet AttributeFlags(string field)
@@ -251,9 +252,12 @@ namespace SpellEditor.Sources.Emulator.CMangos.Tbc
             if (serverName == "CastUI") clientName = "castUI";
             else if (serverName == "MaxLevel") clientName = "MaximumLevel";
             else if (serverName == "MaxTargetLevel") clientName = "MaximumTargetLevel";
-            else if (serverName == "DmgClass") clientName = "SpellDamageClass";
+            else if (serverName == "ManaCostPerlevel") clientName = "ManaCostPerLevel";
+            else if (serverName == "MaxAffectedTargets") clientName = "MaximumAffectedTargets";
+            else if (serverName == "DmgClass") clientName = "DamageClass";
             else if (serverName.StartsWith("DmgMultiplier")) clientName = serverName.Replace("DmgMultiplier", "EffectDamageMultiplier");
             else if (serverName == "MinFactionId") clientName = "MinimumFactionId";
+            else if (serverName == "MinReputation") clientName = "MinimumReputation";
             else if (serverName == "AreaId") clientName = "AreaID";
             else if (serverName == "SpellVisual") clientName = "SpellVisual1";
             else if (serverName == "SchoolMask") clientName = "School";
@@ -273,7 +277,7 @@ namespace SpellEditor.Sources.Emulator.CMangos.Tbc
         private static WorldColumn C(string name, ColumnKind kind = ColumnKind.UInt, string defaultValue = "0", FlagSet flags = null,
             string clientOptions = null)
         {
-            return new WorldColumn
+            var column = new WorldColumn
             {
                 Name = name,
                 Kind = kind,
@@ -286,6 +290,12 @@ namespace SpellEditor.Sources.Emulator.CMangos.Tbc
                     ? "Server spell_template field. A new row is initialized from the selected client Spell.dbc record."
                     : "Uses the same TBC choices and numeric ids as the matching client Spell.dbc field. Unknown existing values are preserved."
             };
+            // The dump stores secondary localized names and every rank string as nullable text.
+            // Preserve SQL NULL on an unchanged loaded row so optimistic concurrency remains exact.
+            column.AllowNull = kind == ColumnKind.Text &&
+                ((name.StartsWith("SpellName", StringComparison.Ordinal) && name != "SpellName") ||
+                 name.StartsWith("Rank", StringComparison.Ordinal));
+            return column;
         }
 
         private static string FriendlyLabel(string name)
@@ -316,8 +326,23 @@ namespace SpellEditor.Sources.Emulator.CMangos.Tbc
                 case "EffectTriggerSpell": return "Trigger Spell" + slot;
                 case "EffectPointsPerComboPoint": return "Points Per Combo Point" + slot;
                 case "DmgMultiplier": return "Damage Multiplier" + slot;
-                default: return name;
+                default: return SplitWords(name);
             }
+        }
+
+        private static string SplitWords(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return name;
+            var result = new System.Text.StringBuilder(name.Length + 8);
+            for (var i = 0; i < name.Length; ++i)
+            {
+                var current = name[i];
+                if (i > 0 && char.IsUpper(current) &&
+                    (char.IsLower(name[i - 1]) || char.IsDigit(name[i - 1])))
+                    result.Append(' ');
+                result.Append(current);
+            }
+            return result.ToString();
         }
 
         protected override IEnumerable<WorldColumn> CreateColumns()
@@ -399,7 +424,9 @@ namespace SpellEditor.Sources.Emulator.CMangos.Tbc
         public override string FallbackHeader => "Server spell";
         public override string FallbackDescription => "The complete CMaNGOS spell_template record. This is separate from the client Spell.dbc row. Add clones the selected client values and leaves server-only fields explicit.";
         public override string FallbackEmpty => "No server spell_template row exists. Add creates an editable client-derived row; review every field before saving.";
-        public override string[] FallbackLabels => Columns.Select(column => column.Name).ToArray();
+        public override string[] FallbackLabels => Columns.Select(column => FriendlyLabel(column.Name)).ToArray();
         public override string[] FallbackTooltips => Columns.Select(column => column.Tooltip ?? column.Name).ToArray();
+        public override string ActivationHint =>
+            "Restart the CMaNGOS world server. spell_template is loaded into the native spell store at startup and has no safe live reload.";
     }
 }

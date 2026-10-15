@@ -8,6 +8,20 @@ using System.Threading.Tasks;
 
 namespace SpellEditor.Sources.Emulator
 {
+    public sealed class WorldMutation
+    {
+        public string Sql { get; }
+        public int ExpectedRows { get; }
+
+        public WorldMutation(string sql, int expectedRows = 1)
+        {
+            Sql = sql ?? throw new ArgumentNullException(nameof(sql));
+            ExpectedRows = expectedRows;
+        }
+
+        public override string ToString() => Sql;
+    }
+
     /// <summary>
     /// Optional connection to a 3.3.5 emulator world database, separate from IDatabaseAdapter.
     /// The schema differences between the supported cores live on Emulator.
@@ -97,7 +111,7 @@ namespace SpellEditor.Sources.Emulator
         }
 
         /// <summary>One transaction so a partially applied save is not possible.</summary>
-        public int ExecuteTransaction(IReadOnlyList<string> statements)
+        public int ExecuteTransaction(IReadOnlyList<WorldMutation> statements)
         {
             if (statements == null || statements.Count == 0)
                 return 0;
@@ -110,12 +124,19 @@ namespace SpellEditor.Sources.Emulator
                     var affected = 0;
                     foreach (var statement in statements)
                     {
-                        Logger.Trace(statement);
+                        Logger.Trace(statement.Sql);
                         using (var cmd = connection.CreateCommand())
                         {
                             cmd.Transaction = transaction;
-                            cmd.CommandText = statement;
-                            affected += cmd.ExecuteNonQuery();
+                            cmd.CommandText = statement.Sql;
+                            var changed = cmd.ExecuteNonQuery();
+                            if (changed != statement.ExpectedRows)
+                            {
+                                throw new DBConcurrencyException(
+                                    $"The database changed while this record was open. Expected to affect " +
+                                    $"{statement.ExpectedRows} row(s), but affected {changed}. Nothing was saved; reload and try again.");
+                            }
+                            affected += changed;
                         }
                     }
                     transaction.Commit();
@@ -168,7 +189,7 @@ namespace SpellEditor.Sources.Emulator
 
         public Task<DataTable> QueryAsync(string sql) => Task.Run(() => Query(sql));
 
-        public Task<int> ExecuteTransactionAsync(IReadOnlyList<string> statements) => Task.Run(() => ExecuteTransaction(statements));
+        public Task<int> ExecuteTransactionAsync(IReadOnlyList<WorldMutation> statements) => Task.Run(() => ExecuteTransaction(statements));
 
         public static string Escape(string value)
         {

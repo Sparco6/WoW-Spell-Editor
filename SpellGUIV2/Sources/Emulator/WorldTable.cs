@@ -35,8 +35,15 @@ namespace SpellEditor.Sources.Emulator
         /// <summary>One row per spell at most, so the editor shows fields rather than a list.</summary>
         public virtual bool IsSingleRow => false;
 
+        /// <summary>Definition tables can forbid destructive removal while still allowing authoring.</summary>
+        public virtual bool CanDelete => true;
+
         /// <summary>False on the table that is the rank chain, it would only repeat itself.</summary>
         public virtual bool ShowsRankChainSummary => true;
+
+        /// <summary>What the owner must do before the running core consumes a saved row.</summary>
+        public virtual string ActivationHint =>
+            "Reload the matching server table when supported, otherwise restart the world server.";
 
         protected abstract IEnumerable<WorldColumn> CreateColumns();
 

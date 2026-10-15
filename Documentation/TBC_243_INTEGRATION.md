@@ -143,6 +143,20 @@ explicit review. Named mask controls default to human-readable checkboxes; **Sho
 switches to the exact decimal/hexadecimal editor without changing the stored bits. Unknown bits are
 retained by the raw value path.
 
+Server writes are transactional and row-scoped. Updates contain only fields the developer changed;
+the selected spell owner is immutable, and UPDATE/DELETE compare the complete original row so a
+concurrent database change causes a rollback instead of being silently overwritten. Every mutation
+must affect exactly one row. The editor also discards stale asynchronous query results when the main
+spell selection changes. Destructive deletion is disabled for `spell_template`; supporting override
+rows can still be removed deliberately. A newly added `spell_template` row copies renamed client
+fields explicitly (`ManaCostPerLevel`, maximum target fields, damage class, reputation, visuals,
+school, localized names/ranks and the split TBC family mask) instead of defaulting them to zero.
+
+Saving `spell_template` changes the world database, not the already loaded native spell store.
+Restart the CMaNGOS world server before checking that row through an in-game authoring addon or in
+gameplay. The editor reports this requirement after save; it does not claim that a generic `.reload`
+has activated a `spell_template` change.
+
 `spell_facing` is present in the supplied dump but has no matching loader in the inspected current
 MasterWoW core, so it is not presented as an active table. `spell_bonus_data_before` is a historical
 backup table and is intentionally excluded. The integration does not expose Trinity/AzerothCore

@@ -43,6 +43,7 @@ namespace SpellEditor.Sources.Emulator
         private DataTable _data;
         private RankChain _chain;
         private uint _spellId;
+        private uint _loadedSpellId;
         private bool _busy;
 
         public WorldTable Table { get; }
@@ -76,6 +77,7 @@ namespace SpellEditor.Sources.Emulator
         {
             _database = database;
             IsDataLoaded = false;
+            _loadedSpellId = 0;
         }
 
         /// <summary>Reloads the next time the tab is opened, unsaved edits are left alone.</summary>
@@ -91,6 +93,12 @@ namespace SpellEditor.Sources.Emulator
                 return;
             _spellId = spellId;
             IsDataLoaded = false;
+            _loadedSpellId = 0;
+            _data = null;
+            _chain = null;
+            _rowNotes.Clear();
+            BuildRows();
+            UpdateRankText();
         }
 
         #region Localisation
@@ -168,6 +176,8 @@ namespace SpellEditor.Sources.Emulator
             if (_database == null)
                 return;
 
+            var requestedSpellId = _spellId;
+
             if (_spellId == 0)
             {
                 _data = null;
@@ -185,14 +195,18 @@ namespace SpellEditor.Sources.Emulator
             try
             {
                 // The chain decides which rows the core would apply, so resolve it first
-                var spellId = _spellId;
-                _chain = await System.Threading.Tasks.Task.Run(() => _database.GetRankChain(spellId));
+                var spellId = requestedSpellId;
+                var chain = await System.Threading.Tasks.Task.Run(() => _database.GetRankChain(spellId));
 
                 var columns = string.Join(", ", Table.Columns.Select(column => $"`{column.Name}`"));
                 var sql = $"SELECT {columns} FROM `{Table.Name}` " +
-                    $"WHERE {Table.SpellFilter(_chain)} ORDER BY {Table.OrderBy}";
+                    $"WHERE {Table.SpellFilter(chain)} ORDER BY {Table.OrderBy}";
 
                 var raw = await _database.QueryAsync(sql);
+                if (_spellId != spellId)
+                    return;
+
+                _chain = chain;
                 _data = ToStringTable(raw);
 
                 _rowNotes.Clear();
@@ -213,6 +227,7 @@ namespace SpellEditor.Sources.Emulator
                 BuildRows();
                 UpdateRankText();
                 IsDataLoaded = true;
+                _loadedSpellId = spellId;
 
                 // The status line is kept for what the rows cannot say themselves
                 SetStatus(string.Empty, false);
@@ -230,6 +245,10 @@ namespace SpellEditor.Sources.Emulator
             finally
             {
                 _busy = false;
+                // A selection made during the query was intentionally not allowed to consume its
+                // result. Fetch that newer selection now instead of leaving an empty/stale panel.
+                if (_database != null && _spellId != requestedSpellId)
+                    await LoadAsync();
             }
         }
 
@@ -250,7 +269,9 @@ namespace SpellEditor.Sources.Emulator
             {
                 var row = table.NewRow();
                 foreach (var column in Table.Columns)
-                    row[column.Name] = ToDisplayString(source[column.Name]);
+                    row[column.Name] = source[column.Name] == DBNull.Value && column.AllowNull
+                        ? DBNull.Value
+                        : (object)ToDisplayString(source[column.Name]);
                 table.Rows.Add(row);
             }
 
@@ -428,8 +449,11 @@ namespace SpellEditor.Sources.Emulator
                 Margin = new Thickness(5),
                 HorizontalAlignment = HorizontalAlignment.Left
             };
-            remove.Click += (sender, args) => RemoveRow(row);
-            content.Children.Add(remove);
+            if (Table.CanDelete)
+            {
+                remove.Click += (sender, args) => RemoveRow(row);
+                content.Children.Add(remove);
+            }
 
             return new Border
             {
@@ -916,9 +940,9 @@ namespace SpellEditor.Sources.Emulator
 
         #region Saving
         /// <summary>Builds the statements from the row states. False and a message on a bad value.</summary>
-        private bool TryBuildStatements(out List<string> statements, out string error)
+        private bool TryBuildStatements(out List<WorldMutation> statements, out string error)
         {
-            statements = new List<string>();
+            statements = new List<WorldMutation>();
             error = null;
 
             if (_data == null)
@@ -939,14 +963,15 @@ namespace SpellEditor.Sources.Emulator
                             return false;
                         break;
                     case DataRowState.Deleted:
-                        statements.Add($"DELETE FROM `{Table.Name}` WHERE {KeyWhere(row, DataRowVersion.Original)};");
+                        statements.Add(new WorldMutation(
+                            $"DELETE FROM `{Table.Name}` WHERE {OriginalRowWhere(row)};"));
                         break;
                 }
             }
             return true;
         }
 
-        private bool TryBuildInsert(DataRow row, int rowNumber, List<string> statements, out string error)
+        private bool TryBuildInsert(DataRow row, int rowNumber, List<WorldMutation> statements, out string error)
         {
             var values = new List<string>();
             foreach (var column in Table.Columns)
@@ -957,12 +982,13 @@ namespace SpellEditor.Sources.Emulator
             }
 
             var names = string.Join(", ", Table.Columns.Select(column => $"`{column.Name}`"));
-            statements.Add($"INSERT INTO `{Table.Name}` ({names}) VALUES ({string.Join(", ", values)});");
+            statements.Add(new WorldMutation(
+                $"INSERT INTO `{Table.Name}` ({names}) VALUES ({string.Join(", ", values)});"));
             error = null;
             return true;
         }
 
-        private bool TryBuildUpdate(DataRow row, int rowNumber, List<string> statements, out string error)
+        private bool TryBuildUpdate(DataRow row, int rowNumber, List<WorldMutation> statements, out string error)
         {
             var assignments = new List<string>();
             foreach (var column in Table.Columns)
@@ -973,32 +999,51 @@ namespace SpellEditor.Sources.Emulator
                 if (column.IsPrimarySpellKey)
                     continue;
 
+                if (row[column.Name, DataRowVersion.Current] as string ==
+                    row[column.Name, DataRowVersion.Original] as string)
+                    continue;
+
                 if (!TryFormat(column, row[column.Name] as string, rowNumber, out var value, out error))
                     return false;
                 assignments.Add($"`{column.Name}` = {value}");
             }
 
-            statements.Add($"UPDATE `{Table.Name}` SET {string.Join(", ", assignments)} " +
-                $"WHERE {KeyWhere(row, DataRowVersion.Original)};");
+            if (assignments.Count == 0)
+            {
+                error = null;
+                return true;
+            }
+
+            statements.Add(new WorldMutation(
+                $"UPDATE `{Table.Name}` SET {string.Join(", ", assignments)} " +
+                $"WHERE {OriginalRowWhere(row)};"));
             error = null;
             return true;
         }
 
-        /// <summary>Identifies a row by its key columns as loaded, spell_linked_spell has no PK.</summary>
-        private string KeyWhere(DataRow row, DataRowVersion version)
+        /// <summary>
+        /// Optimistic concurrency: the key identifies the intended row and every original value
+        /// proves it is still the row the user loaded. MySQL's null-safe comparison also handles
+        /// nullable text columns. A concurrent edit therefore rolls the whole save back instead of
+        /// being silently overwritten.
+        /// </summary>
+        private string OriginalRowWhere(DataRow row)
         {
             var parts = new List<string>();
-            foreach (var column in Table.KeyColumns)
+            foreach (var column in Table.Columns)
             {
-                var raw = row[column.Name, version] as string;
-                if (string.IsNullOrEmpty(raw))
+                var raw = row[column.Name, DataRowVersion.Original] as string;
+                if (string.IsNullOrEmpty(raw) && column.AllowNull)
                 {
-                    parts.Add($"`{column.Name}` IS NULL");
+                    parts.Add($"`{column.Name}` <=> NULL");
                     continue;
                 }
-                parts.Add(column.Kind == ColumnKind.Text
-                    ? $"`{column.Name}` = '{WorldDatabase.Escape(raw)}'"
-                    : $"`{column.Name}` = {raw.Trim()}");
+
+                if (!TryFormat(column, raw, 0, out var value, out _))
+                    value = column.Kind == ColumnKind.Text
+                        ? $"'{WorldDatabase.Escape(raw ?? string.Empty)}'"
+                        : (string.IsNullOrWhiteSpace(raw) ? "0" : raw.Trim());
+                parts.Add($"`{column.Name}` <=> {value}");
             }
             return string.Join(" AND ", parts);
         }
@@ -1084,7 +1129,7 @@ namespace SpellEditor.Sources.Emulator
         #region Handlers
         private void AddRow_Click(object sender, RoutedEventArgs e)
         {
-            if (_data == null || _database == null)
+            if (_data == null || _database == null || _loadedSpellId == 0 || _loadedSpellId != _spellId)
                 return;
 
             var context = new NewRowContext
@@ -1121,7 +1166,7 @@ namespace SpellEditor.Sources.Emulator
 
         private void RemoveRow(DataRow row)
         {
-            if (_data == null)
+            if (_data == null || !Table.CanDelete)
                 return;
 
             row.Delete();
@@ -1133,6 +1178,13 @@ namespace SpellEditor.Sources.Emulator
         {
             if (_data == null || _database == null || _busy)
                 return;
+
+            if (_loadedSpellId == 0 || _loadedSpellId != _spellId)
+            {
+                SetStatus(Localise("emu_wrong_spell_loaded",
+                    "The selected spell changed while this data was open. Reload before saving."), true);
+                return;
+            }
 
             if (!TryBuildStatements(out var statements, out var error))
             {
@@ -1153,8 +1205,7 @@ namespace SpellEditor.Sources.Emulator
                 // A save can move data between ranks, so no other tab can trust what it has
                 _database.ClearRankChains();
                 SetStatus(string.Format(Localise("emu_saved",
-                    "Saved {0} change(s). Reload the server or run .reload for it to take effect."),
-                    statements.Count), false);
+                    "Saved {0} change(s). {1}"), statements.Count, Table.ActivationHint), false);
                 _busy = false;
                 await LoadAsync();
                 Saved?.Invoke();
@@ -1193,7 +1244,7 @@ namespace SpellEditor.Sources.Emulator
 
             try
             {
-                Clipboard.SetText(string.Join(Environment.NewLine, statements));
+                Clipboard.SetText(string.Join(Environment.NewLine, statements.Select(statement => statement.Sql)));
                 SetStatus(string.Format(Localise("emu_sql_copied",
                     "{0} statement(s) copied to the clipboard."), statements.Count), false);
             }
